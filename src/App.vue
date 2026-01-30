@@ -256,44 +256,18 @@ function manualReconnect() {
 
 <template>
   <div class="min-h-screen bg-slate-950 text-slate-50 flex flex-col">
-    <div class="px-6 pt-3 pb-0 text-[11px] text-slate-400 flex items-center gap-3 flex-wrap">
-      <span class="px-2 py-0.5 rounded bg-slate-900 border border-slate-800">
-        Mode: <span class="text-slate-200 font-semibold">{{ mode }}</span>
-      </span>
-      <span class="px-2 py-0.5 rounded bg-slate-900 border border-slate-800">
-        Link: <span class="text-slate-200 font-semibold">{{ wsStatus }}</span>
-      </span>
-      <button
-        type="button"
-        class="px-2 py-0.5 rounded border bg-slate-900 border-slate-800 text-slate-200 hover:border-emerald-400/70 transition-colors"
-        @click="manualReconnect"
-        title="Force WebSocket reconnect to the bridge"
-      >
-        Reconnect
-      </button>
-      <button
-        type="button"
-        class="px-2 py-0.5 rounded border transition-colors"
-        :class="
-          syncListenToAbleton
-            ? 'bg-emerald-500/20 border-emerald-400/60 text-emerald-200'
-            : 'bg-slate-900 border-slate-800 text-slate-200 hover:border-slate-700'
-        "
-        @click="syncListenToAbleton = !syncListenToAbleton"
-        title="When ON: listen to Ableton fader/knob feedback"
-      >
-        Sync: <span class="font-semibold">{{ syncListenToAbleton ? 'ON' : 'OFF' }}</span>
-      </button>
-      <span class="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 hidden sm:inline">
-        WS: <span class="text-slate-200 font-semibold">{{ bridgeUrl }}</span>
-      </span>
-    </div>
     <MixerTopBar
       :outputs="outputs"
       :output-id="outputId"
       :channel="channel"
+      :mode="mode"
+      :ws-status="wsStatus"
+      :bridge-url="bridgeUrl"
+      :sync-listen-to-ableton="syncListenToAbleton"
+      :on-reconnect="manualReconnect"
       @update:outputId="value => (outputId = value)"
       @update:channel="value => (channel = value)"
+      @update:syncListenToAbleton="value => (syncListenToAbleton = value)"
     />
 
     <main class="flex-1 overflow-hidden">
