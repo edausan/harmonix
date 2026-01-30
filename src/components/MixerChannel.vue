@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
+import { ref, watch, computed, onUnmounted } from 'vue'
 
 const props = defineProps({
   channelConfig: {
@@ -40,8 +40,6 @@ const isEditingName = ref(false)
 const isFlipped = ref(false)
 const settingsOpen = ref(false)
 const localName = ref(props.name || props.channelConfig.name)
-const settingsEl = ref(null)
-const settingsTriggerEl = ref(null)
 const localFaderCc = ref(
   props.faderCcOverride != null && Number.isFinite(props.faderCcOverride)
     ? String(props.faderCcOverride)
@@ -69,6 +67,18 @@ watch(
   }
 )
 
+watch(settingsOpen, isOpen => {
+  if (isOpen) {
+    document.addEventListener('keydown', onSettingsKeydown)
+  } else {
+    document.removeEventListener('keydown', onSettingsKeydown)
+  }
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', onSettingsKeydown)
+})
+
 function openSettings() {
   settingsOpen.value = true
 }
@@ -77,16 +87,8 @@ function closeSettings() {
   settingsOpen.value = false
 }
 
-function handleClickOutsideSettings(e) {
-  if (
-    settingsOpen.value &&
-    settingsEl.value &&
-    settingsTriggerEl.value &&
-    !settingsEl.value.contains(e.target) &&
-    !settingsTriggerEl.value.contains(e.target)
-  ) {
-    closeSettings()
-  }
+function onModalBackdropClick(e) {
+  if (e.target === e.currentTarget) closeSettings()
 }
 
 function commitFaderCc() {
@@ -100,13 +102,9 @@ function commitFaderCc() {
   emit('update:faderCcOverride', n)
 }
 
-onMounted(() => {
-  document.addEventListener('click', handleClickOutsideSettings)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutsideSettings)
-})
+function onSettingsKeydown(e) {
+  if (e.key === 'Escape') closeSettings()
+}
 
 function onKnobInput(index, cc, event) {
   const raw = event.target && event.target.value
@@ -167,7 +165,7 @@ function formatDb(value) {
 
 <template>
   <div
-    class="channel-flip-wrapper w-28 sm:w-32 h-[320px]"
+    class="channel-flip-wrapper w-28 sm:w-32 h-[370px]"
     :style="{
       '--channel-color': color,
       '--channel-color-glow': color + '40',
@@ -175,7 +173,7 @@ function formatDb(value) {
     }"
   >
     <div
-      class="channel-flip-inner rounded-2xl border-2 shadow-lg shadow-black/40 channel-border channel-bg-inner"
+      class="channel-flip-inner rounded-2xl border shadow-lg shadow-black/40 channel-border channel-bg-inner"
       :class="{ 'channel-flipped': isFlipped }"
     >
       <!-- Front: label + fader + settings + flip -->
@@ -183,91 +181,22 @@ function formatDb(value) {
         class="channel-face channel-face-front w-full h-full rounded-2xl channel-face-bg flex flex-col items-center px-3 pt-3 pb-4 gap-1"
       >
         <div class="w-full mb-3 flex flex-col items-center gap-1">
-          <div class="w-full flex items-center justify-center gap-1">
-            <button
-              type="button"
-              class="channel-label flex-1 min-w-0 px-3 py-0.5 rounded-full bg-slate-800/80 border border-slate-700 text-[10px] font-semibold tracking-widest uppercase text-slate-200 text-center truncate transition-colors"
-              @dblclick="startEditName"
-            >
-              <span v-if="!isEditingName">
-                {{ name || channelConfig.name }}
-              </span>
-              <input
-                v-else
-                v-model="localName"
-                class="w-full bg-transparent outline-none border-none text-center uppercase text-[10px]"
-                @blur="commitName"
-                @keydown="onNameKeydown"
-              />
-            </button>
-            <div class="relative flex-shrink-0" ref="settingsTriggerEl">
-              <button
-                type="button"
-                class="p-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-400 transition-colors touch-manipulation"
-                title="Channel settings"
-                aria-label="Channel settings"
-                @click="openSettings"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z" />
-                </svg>
-              </button>
-              <!-- Channel settings popover -->
-              <Transition
-                enter-active-class="transition duration-150 ease-out"
-                enter-from-class="opacity-0 scale-95"
-                enter-to-class="opacity-100 scale-100"
-                leave-active-class="transition duration-100 ease-in"
-                leave-from-class="opacity-100 scale-100"
-                leave-to-class="opacity-0 scale-95"
-              >
-                <div
-                  v-show="settingsOpen"
-                  ref="settingsEl"
-                  class="channel-settings-popover absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-[70] w-56 rounded-xl border border-slate-700 bg-slate-900 shadow-xl shadow-black/50 py-3 px-3 space-y-3"
-                  role="dialog"
-                  aria-label="Channel settings"
-                >
-                  <div class="text-[10px] font-semibold uppercase tracking-wide text-slate-400 px-0.5">
-                    Track settings
-                  </div>
-                  <!-- 1. Color picker (prioritized first) -->
-                  <div class="space-y-1.5">
-                    <label class="text-[10px] font-medium uppercase tracking-wide text-slate-400 block">
-                      Track color
-                    </label>
-                    <input
-                      type="color"
-                      :value="color"
-                      @input="emit('update:color', ($event.target && $event.target.value) || color)"
-                      class="channel-color-input h-9 w-full cursor-pointer rounded-lg border border-slate-700 bg-slate-800/80 p-1 touch-manipulation [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch]:rounded-md"
-                      title="Track color"
-                    />
-                  </div>
-                  <!-- 2. Fader CC override -->
-                  <div class="space-y-1.5">
-                    <label class="text-[10px] font-medium uppercase tracking-wide text-slate-400 block">
-                      Fader CC (0–127)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="127"
-                      v-model="localFaderCc"
-                      placeholder="Default: {{ channelConfig.faderCC }}"
-                      class="w-full h-9 rounded-lg bg-slate-800 border border-slate-700 px-3 text-sm text-slate-200 placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500/70 focus:border-emerald-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      @blur="commitFaderCc"
-                      @keydown.enter="commitFaderCc"
-                    />
-                    <p class="text-[9px] text-slate-500">
-                      Leave empty for default ({{ channelConfig.faderCC }})
-                    </p>
-                  </div>
-                </div>
-              </Transition>
-            </div>
-          </div>
+          <button
+            type="button"
+            class="channel-label w-full px-3 py-0.5 rounded-full bg-slate-800/80 border border-slate-700 text-[10px] font-semibold tracking-widest uppercase text-slate-200 text-center truncate transition-colors"
+            @dblclick="startEditName"
+          >
+            <span v-if="!isEditingName">
+              {{ name || channelConfig.name }}
+            </span>
+            <input
+              v-else
+              v-model="localName"
+              class="w-full bg-transparent outline-none border-none text-center uppercase text-[10px]"
+              @blur="commitName"
+              @keydown="onNameKeydown"
+            />
+          </button>
           <div class="text-[10px] text-slate-500">
             CC {{ effectiveFaderCC }}
           </div>
@@ -297,12 +226,19 @@ function formatDb(value) {
           >
             Vol
           </div>
-          <div class="flex items-center gap-2">
-            <div
-              class="w-3 h-3 rounded-full border border-slate-600 flex-shrink-0"
-              :style="{ backgroundColor: color }"
-              title="Channel color"
-            />
+          <div class="flex items-center justify-center gap-2">
+            <button
+              type="button"
+              class="p-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-400 transition-colors touch-manipulation hover:border-slate-500"
+              title="Channel settings"
+              aria-label="Channel settings"
+              @click="openSettings"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+              </svg>
+            </button>
             <button
               type="button"
               class="flip-btn p-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-400 transition-colors"
@@ -365,6 +301,78 @@ function formatDb(value) {
       </div>
     </div>
   </div>
+
+  <!-- Channel settings modal (centered) -->
+  <Teleport to="body">
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-show="settingsOpen"
+        class="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Channel settings"
+        @click.self="onModalBackdropClick"
+        >
+        <Transition
+          enter-active-class="transition duration-200 ease-out"
+          enter-from-class="opacity-0 scale-95"
+          enter-to-class="opacity-100 scale-100"
+          leave-active-class="transition duration-150 ease-in"
+          leave-from-class="opacity-100 scale-100"
+          leave-to-class="opacity-0 scale-95"
+        >
+          <div
+            v-show="settingsOpen"
+            class="channel-settings-modal w-full max-w-[280px] rounded-xl border border-slate-700 bg-slate-900 shadow-xl shadow-black/50 py-4 px-4 space-y-4"
+            @click.stop
+          >
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              Track settings
+            </div>
+            <!-- 1. Color picker (prioritized first) -->
+            <div class="space-y-1.5">
+              <label class="text-[10px] font-medium uppercase tracking-wide text-slate-400 block">
+                Track color
+              </label>
+              <input
+                type="color"
+                :value="color"
+                @input="emit('update:color', ($event.target && $event.target.value) || color)"
+                class="channel-color-input h-9 w-full cursor-pointer rounded-lg border border-slate-700 bg-slate-800/80 p-1 touch-manipulation [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch]:rounded-md"
+                title="Track color"
+              />
+            </div>
+            <!-- 2. Fader CC override -->
+            <div class="space-y-1.5">
+              <label class="text-[10px] font-medium uppercase tracking-wide text-slate-400 block">
+                Fader CC (0–127)
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="127"
+                v-model="localFaderCc"
+                :placeholder="`Default: ${channelConfig.faderCC}`"
+                class="w-full h-9 rounded-lg bg-slate-800 border border-slate-700 px-3 text-sm text-slate-200 placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500/70 focus:border-emerald-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                @blur="commitFaderCc"
+                @keydown.enter="commitFaderCc"
+              />
+              <p class="text-[9px] text-slate-500">
+                Leave empty for default ({{ channelConfig.faderCC }})
+              </p>
+            </div>
+          </div>
+        </Transition>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -396,15 +404,15 @@ function formatDb(value) {
 }
 
 .channel-border {
-  border-color: var(--channel-color);
+  border-color: color-mix(in srgb, var(--channel-color) 45%, rgb(71 85 105));
 }
 
 .channel-bg-inner {
-  background: color-mix(in srgb, var(--channel-color) 11%, rgb(15 23 42));
+  background: color-mix(in srgb, var(--channel-color) 6%, rgb(15 23 42));
 }
 
 .channel-face-bg {
-  background: color-mix(in srgb, var(--channel-color) 9%, rgb(15 23 42));
+  background: color-mix(in srgb, var(--channel-color) 5%, rgb(15 23 42));
 }
 
 .channel-label:hover {
