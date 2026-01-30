@@ -54,6 +54,22 @@ const mixerChannels = Array.from({ length: 10 }, (_, i) => {
 // Reactive track names (can be renamed from the UI)
 const channelNames = ref(mixerChannels.map(ch => ch.name))
 
+// Per-channel accent colors (hex)
+const DEFAULT_CHANNEL_COLORS = [
+  '#22c55e', '#3b82f6', '#a855f7', '#ec4899', '#f43f5e',
+  '#f97316', '#eab308', '#14b8a6', '#6366f1', '#84cc16'
+]
+const channelColors = ref([...DEFAULT_CHANNEL_COLORS])
+
+// Per-channel fader CC override (null = use default from mixerChannels)
+const channelFaderCCOverrides = ref(mixerChannels.map(() => null))
+
+function getFaderCC(index) {
+  const over = channelFaderCCOverrides.value[index]
+  if (over != null && Number.isFinite(over)) return over
+  return mixerChannels[index].faderCC
+}
+
 // UI values for each channel, driven by both user interaction and incoming MIDI
 const channelValues = ref(
   mixerChannels.map(() => ({
@@ -92,11 +108,12 @@ function broadcast(msg) {
 function applyCCToState(cc, value) {
   const numChannels = mixerChannels.length
 
-  // Faders: CC 20–29
-  if (cc >= 20 && cc < 20 + numChannels) {
-    const index = cc - 20
-    if (channelValues.value[index]) channelValues.value[index].fader = value
-    return true
+  // Faders: match by effective fader CC per channel (default or override)
+  for (let i = 0; i < numChannels; i++) {
+    if (getFaderCC(i) === cc && channelValues.value[i]) {
+      channelValues.value[i].fader = value
+      return true
+    }
   }
 
   // Gain knobs: CC 40–49 (index 0)
@@ -237,6 +254,16 @@ function connectWs() {
       const name = typeof msg.name === 'string' ? msg.name : ''
       if (!Number.isFinite(index) || index < 0 || index >= channelNames.value.length) return
       channelNames.value[index] = name || channelNames.value[index]
+    } else if (msg.type === 'color') {
+      const index = Number(msg.index)
+      const color = typeof msg.color === 'string' ? msg.color : ''
+      if (!Number.isFinite(index) || index < 0 || index >= channelColors.value.length || !color) return
+      channelColors.value[index] = color
+    } else if (msg.type === 'faderCcOverride') {
+      const index = Number(msg.index)
+      const val = msg.value
+      if (!Number.isFinite(index) || index < 0 || index >= channelFaderCCOverrides.value.length) return
+      channelFaderCCOverrides.value[index] = val == null || val === '' ? null : Number(val)
     }
   })
 }
@@ -282,6 +309,8 @@ function manualReconnect() {
               :channel-config="ch"
               :name="channelNames[index]"
               :values="channelValues[index]"
+              :color="channelColors[index]"
+              :fader-cc-override="channelFaderCCOverrides[index]"
               :send-cc="sendCC"
               @update:fader="val => (channelValues[index].fader = val)"
               @update:knob="payload => (channelValues[index].knobs[payload.index] = payload.value)"
@@ -289,6 +318,18 @@ function manualReconnect() {
                 val => {
                   channelNames[index] = val
                   broadcast({ type: 'name', index, name: val, clientId })
+                }
+              "
+              @update:color="
+                val => {
+                  channelColors[index] = val
+                  broadcast({ type: 'color', index, color: val, clientId })
+                }
+              "
+              @update:fader-cc-override="
+                val => {
+                  channelFaderCCOverrides[index] = val
+                  broadcast({ type: 'faderCcOverride', index, value: val, clientId })
                 }
               "
             />
