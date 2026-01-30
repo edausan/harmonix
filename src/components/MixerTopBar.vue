@@ -81,10 +81,10 @@ onUnmounted(() => {
   >
     <div class="min-w-0">
       <h1 class="text-lg sm:text-xl font-semibold tracking-tight truncate">
-        DAW MIDI Mixer
+        Harmonix
       </h1>
       <p class="text-[10px] sm:text-xs text-slate-400 truncate">
-        10-channel mixer · 3 knobs + 1 fader per channel
+        Control Your Sound in Harmony
       </p>
     </div>
 
