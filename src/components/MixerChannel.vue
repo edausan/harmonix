@@ -20,7 +20,7 @@ const props = defineProps({
   },
   color: {
     type: String,
-    default: '#22c55e'
+    default: '#254f93'
   },
   faderCcOverride: {
     type: Number,
@@ -165,7 +165,7 @@ function formatDb(value) {
 
 <template>
   <div
-    class="channel-flip-wrapper w-28 sm:w-32 h-[370px]"
+    class="channel-flip-wrapper w-28 sm:w-32 h-[calc(100vh-150px)]"
     :style="{
       '--channel-color': color,
       '--channel-color-glow': color + '40',
@@ -203,7 +203,7 @@ function formatDb(value) {
         </div>
 
         <div class="flex-1 flex flex-col items-center justify-end w-full">
-          <div class="h-44 flex items-center justify-center mb-2">
+          <div class="h-full flex items-center justify-center mb-2">
             <div class="relative h-full w-12 flex items-center justify-center">
               <div
                 class="pointer-events-none absolute left-1/2 -translate-x-1/2 top-2 bottom-2 w-3 rounded-full bg-slate-800/70 border border-slate-700/60"
@@ -222,7 +222,7 @@ function formatDb(value) {
             {{ formatDb(values?.fader ?? 100) }}
           </div>
           <div
-            class="px-2 py-0.5 rounded bg-slate-800/80 text-[10px] font-mono text-slate-300 border border-slate-700 mb-2"
+            class="px-2 py-0.5 rounded bg-slate-800/80 text-[14px] font-mono text-slate-300 border border-slate-700 mb-2"
           >
             Vol
           </div>
@@ -234,7 +234,7 @@ function formatDb(value) {
               aria-label="Channel settings"
               @click="openSettings"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z" />
               </svg>
@@ -245,7 +245,7 @@ function formatDb(value) {
               title="Show knobs"
               @click="toggleFlip"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                 <path d="M3 3v5h5" />
               </svg>
@@ -293,7 +293,7 @@ function formatDb(value) {
           title="Show fader"
           @click="toggleFlip"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
             <path d="M3 3v5h5" />
           </svg>
@@ -434,16 +434,16 @@ function formatDb(value) {
   appearance: none;
   background: transparent;
   height: 12px; /* match track bar width so fader thumb is centered on it */
-  width: 10rem; /* vertical travel when rotated */
+  width: 28rem; /* vertical travel when rotated */
   touch-action: none;
 }
 
 .mixer-fader::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 24px;
-  height: 36px;
-  margin-top: -12px; /* center 36px thumb on 12px track (before rotation = horizontal center on trackbar) */
+  width: 40px;
+  height: 60px;
+  margin-top: -25px; /* center 36px thumb on 12px track (before rotation = horizontal center on trackbar) */
   border-radius: 9999px;
   background: linear-gradient(to bottom, var(--channel-color), color-mix(in srgb, var(--channel-color) 75%, black));
   border: 1px solid rgb(15 23 42);

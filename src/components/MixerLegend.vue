@@ -1,6 +1,6 @@
 <template>
   <footer
-    class="border-t border-slate-800 bg-slate-900/80 px-6 py-3 text-[11px] text-slate-400 flex flex-wrap gap-x-6 gap-y-1"
+    class="border-t border-slate-800 bg-slate-900/80 px-6 py-3 text-[11px] text-slate-400 flex flex-wrap gap-x-6 gap-y-1 fixed bottom-0 left-0 right-0 items-center justify-center"
   >
     <div class="flex items-center gap-2">
       <span class="h-2 w-2 rounded-full bg-emerald-400/80"></span>

@@ -35,13 +35,26 @@ const incomingCcQueue = new Map() // cc -> value
 const lastSentCc = new Map() // cc -> { value, t }
 const ECHO_IGNORE_MS = 80
 
+const DEFAULT_CHANNEL_NAMES = [
+  "Drums",
+  "Bass",
+  "Gtr",
+  "Acoustic",
+  "Keys",
+  "Vocals",
+  "CH 7",
+  "CH 8",
+  "CH 9",
+  "CH 10",
+]
+
 // 10 mixer channels, each with 1 fader + 3 knobs
 const mixerChannels = Array.from({ length: 10 }, (_, i) => {
   const index = i + 1
   const base = 20 + i // faders: 20–29
   return {
     id: index,
-    name: `CH ${index}`,
+    name: DEFAULT_CHANNEL_NAMES[i],
     faderCC: base,
     knobs: [
       { label: 'Gain', cc: 40 + i },
@@ -56,8 +69,8 @@ const channelNames = ref(mixerChannels.map(ch => ch.name))
 
 // Per-channel accent colors (hex)
 const DEFAULT_CHANNEL_COLORS = [
-  '#22c55e', '#3b82f6', '#a855f7', '#ec4899', '#f43f5e',
-  '#f97316', '#eab308', '#14b8a6', '#6366f1', '#84cc16'
+  '#254f93', '#254f93', '#254f93', '#254f93', '#254f93',
+  '#254f93', '#254f93', '#254f93', '#254f93', '#254f93'
 ]
 const channelColors = ref([...DEFAULT_CHANNEL_COLORS])
 
@@ -301,7 +314,7 @@ function manualReconnect() {
       <div class="h-full flex flex-col">
         <div class="flex-1 overflow-x-auto overflow-y-hidden">
           <div
-            class="h-full flex gap-4 px-6 py-6 min-w-max bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"
+            class="h-full flex gap-4 px-6 py-6 pb-16 min-w-max bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"
           >
             <MixerChannel
               v-for="(ch, index) in mixerChannels"
