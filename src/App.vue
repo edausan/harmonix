@@ -101,6 +101,16 @@ const channelValues = ref(
 )
 const channelRefs = vueRef([])
 
+// Per-channel send filter knobs (Low/High Cut per Send A–D)
+const sendFilterValues = ref(
+  mixerChannels.map(() => ({
+    A: { low: 64, high: 64 },
+    B: { low: 64, high: 64 },
+    C: { low: 64, high: 64 },
+    D: { low: 64, high: 64 }
+  }))
+)
+
 onMounted(async () => {
   connectWs()
   try {
@@ -115,7 +125,15 @@ onMounted(async () => {
   } catch {}
   ensureDefaultPreset()
   refreshPresets()
-  if (!currentPresetName.value) currentPresetName.value = DEFAULT_PRESET_NAME
+  let last = ''
+  try {
+    last = localStorage.getItem('harmonix_last_preset') || ''
+  } catch {}
+  if (last && presetNames.value.includes(last)) {
+    loadPreset(last)
+  } else {
+    loadPreset(DEFAULT_PRESET_NAME)
+  }
 })
 
 function send(status, d1, d2) {
@@ -151,6 +169,54 @@ function applyCCToState(cc, value) {
   if (cc >= 60 && cc < 60 + numChannels) {
     const index = cc - 60
     if (channelValues.value[index]) channelValues.value[index].knobs[1] = value
+    return true
+  }
+
+  // Send A filters: Low Cut (30–39), High Cut (31–40)
+  if (cc >= 30 && cc < 30 + numChannels) {
+    const index = cc - 30
+    if (sendFilterValues.value[index]) sendFilterValues.value[index].A.low = value
+    return true
+  }
+  if (cc >= 31 && cc < 31 + numChannels) {
+    const index = cc - 31
+    if (sendFilterValues.value[index]) sendFilterValues.value[index].A.high = value
+    return true
+  }
+
+  // Send B filters: Low Cut (32–41), High Cut (33–42)
+  if (cc >= 32 && cc < 32 + numChannels) {
+    const index = cc - 32
+    if (sendFilterValues.value[index]) sendFilterValues.value[index].B.low = value
+    return true
+  }
+  if (cc >= 33 && cc < 33 + numChannels) {
+    const index = cc - 33
+    if (sendFilterValues.value[index]) sendFilterValues.value[index].B.high = value
+    return true
+  }
+
+  // Send C filters: Low Cut (34–43), High Cut (35–44)
+  if (cc >= 34 && cc < 34 + numChannels) {
+    const index = cc - 34
+    if (sendFilterValues.value[index]) sendFilterValues.value[index].C.low = value
+    return true
+  }
+  if (cc >= 35 && cc < 35 + numChannels) {
+    const index = cc - 35
+    if (sendFilterValues.value[index]) sendFilterValues.value[index].C.high = value
+    return true
+  }
+
+  // Send D filters: Low Cut (36–45), High Cut (37–46)
+  if (cc >= 36 && cc < 36 + numChannels) {
+    const index = cc - 36
+    if (sendFilterValues.value[index]) sendFilterValues.value[index].D.low = value
+    return true
+  }
+  if (cc >= 37 && cc < 37 + numChannels) {
+    const index = cc - 37
+    if (sendFilterValues.value[index]) sendFilterValues.value[index].D.high = value
     return true
   }
 
@@ -401,6 +467,9 @@ function loadPreset(name) {
     const p = presets[name]
     if (!p) return
     currentPresetName.value = name
+    try {
+      localStorage.setItem('harmonix_last_preset', name)
+    } catch {}
     if (typeof p.midiChannel === 'number') channel.value = p.midiChannel
     const count = mixerChannels.length
     for (let i = 0; i < count; i++) {
@@ -572,43 +641,115 @@ function deletePreset(name) {
           <div v-else-if="toolbarTab === 'Sends'" class="h-full px-6 py-6 min-w-max bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
             <div class="h-full flex gap-4 pb-16">
               <MixerChannel
-                :channel-config="{ id: 'sendA', name: 'Send A', faderCC: 90 + selectedChannelIndex, knobs: [] }"
                 :name="'Send A'"
                 :subtitle="'CC ' + (90 + selectedChannelIndex)"
-                :values="{ fader: channelValues[selectedChannelIndex].knobs[2], knobs: [] }"
+                :channel-config="{
+                  id: 'sendA',
+                  name: 'Send A',
+                  faderCC: 90 + selectedChannelIndex,
+                  knobs: [
+                    { label: 'Low Cut', cc: 30 + selectedChannelIndex },
+                    { label: 'High Cut', cc: 31 + selectedChannelIndex }
+                  ]
+                }"
+                :values="{
+                  fader: channelValues[selectedChannelIndex].knobs[2],
+                  knobs: [
+                    sendFilterValues[selectedChannelIndex].A.low,
+                    sendFilterValues[selectedChannelIndex].A.high
+                  ]
+                }"
                 :color="channelColors[selectedChannelIndex]"
                 :fader-cc-override="90 + selectedChannelIndex"
                 :send-cc="sendCC"
+                @update:knob="p => {
+                  if (p.index === 0) sendFilterValues[selectedChannelIndex].A.low = p.value
+                  else if (p.index === 1) sendFilterValues[selectedChannelIndex].A.high = p.value
+                }"
                 @update:fader="val => (channelValues[selectedChannelIndex].knobs[2] = val)"
               />
               <MixerChannel
-                :channel-config="{ id: 'sendB', name: 'Send B', faderCC: 100 + selectedChannelIndex, knobs: [] }"
                 :name="'Send B'"
                 :subtitle="'CC ' + (100 + selectedChannelIndex)"
-                :values="{ fader: channelValues[selectedChannelIndex].knobs[3], knobs: [] }"
+                :channel-config="{
+                  id: 'sendB',
+                  name: 'Send B',
+                  faderCC: 100 + selectedChannelIndex,
+                  knobs: [
+                    { label: 'Low Cut', cc: 32 + selectedChannelIndex },
+                    { label: 'High Cut', cc: 33 + selectedChannelIndex }
+                  ]
+                }"
+                :values="{
+                  fader: channelValues[selectedChannelIndex].knobs[3],
+                  knobs: [
+                    sendFilterValues[selectedChannelIndex].B.low,
+                    sendFilterValues[selectedChannelIndex].B.high
+                  ]
+                }"
                 :color="channelColors[selectedChannelIndex]"
                 :fader-cc-override="100 + selectedChannelIndex"
                 :send-cc="sendCC"
+                @update:knob="p => {
+                  if (p.index === 0) sendFilterValues[selectedChannelIndex].B.low = p.value
+                  else if (p.index === 1) sendFilterValues[selectedChannelIndex].B.high = p.value
+                }"
                 @update:fader="val => (channelValues[selectedChannelIndex].knobs[3] = val)"
               />
               <MixerChannel
-                :channel-config="{ id: 'sendC', name: 'Send C', faderCC: 110 + selectedChannelIndex, knobs: [] }"
                 :name="'Send C'"
                 :subtitle="'CC ' + (110 + selectedChannelIndex)"
-                :values="{ fader: channelValues[selectedChannelIndex].knobs[4], knobs: [] }"
+                :channel-config="{
+                  id: 'sendC',
+                  name: 'Send C',
+                  faderCC: 110 + selectedChannelIndex,
+                  knobs: [
+                    { label: 'Low Cut', cc: 34 + selectedChannelIndex },
+                    { label: 'High Cut', cc: 35 + selectedChannelIndex }
+                  ]
+                }"
+                :values="{
+                  fader: channelValues[selectedChannelIndex].knobs[4],
+                  knobs: [
+                    sendFilterValues[selectedChannelIndex].C.low,
+                    sendFilterValues[selectedChannelIndex].C.high
+                  ]
+                }"
                 :color="channelColors[selectedChannelIndex]"
                 :fader-cc-override="110 + selectedChannelIndex"
                 :send-cc="sendCC"
+                @update:knob="p => {
+                  if (p.index === 0) sendFilterValues[selectedChannelIndex].C.low = p.value
+                  else if (p.index === 1) sendFilterValues[selectedChannelIndex].C.high = p.value
+                }"
                 @update:fader="val => (channelValues[selectedChannelIndex].knobs[4] = val)"
               />
               <MixerChannel
-                :channel-config="{ id: 'sendD', name: 'Send D', faderCC: 80 + selectedChannelIndex, knobs: [] }"
                 :name="'Send D'"
                 :subtitle="'CC ' + (80 + selectedChannelIndex)"
-                :values="{ fader: channelValues[selectedChannelIndex].knobs[5], knobs: [] }"
+                :channel-config="{
+                  id: 'sendD',
+                  name: 'Send D',
+                  faderCC: 80 + selectedChannelIndex,
+                  knobs: [
+                    { label: 'Low Cut', cc: 36 + selectedChannelIndex },
+                    { label: 'High Cut', cc: 37 + selectedChannelIndex }
+                  ]
+                }"
+                :values="{
+                  fader: channelValues[selectedChannelIndex].knobs[5],
+                  knobs: [
+                    sendFilterValues[selectedChannelIndex].D.low,
+                    sendFilterValues[selectedChannelIndex].D.high
+                  ]
+                }"
                 :color="channelColors[selectedChannelIndex]"
                 :fader-cc-override="80 + selectedChannelIndex"
                 :send-cc="sendCC"
+                @update:knob="p => {
+                  if (p.index === 0) sendFilterValues[selectedChannelIndex].D.low = p.value
+                  else if (p.index === 1) sendFilterValues[selectedChannelIndex].D.high = p.value
+                }"
                 @update:fader="val => (channelValues[selectedChannelIndex].knobs[5] = val)"
               />
             </div>

@@ -57,7 +57,11 @@ const localName = ref(props.name ?? props.channelConfig.name ?? '')
 
 const visibleKnobs = computed(() =>
   (props.channelConfig.knobs || []).filter(k =>
-    k.label === 'Gain' || k.label === 'Pan' || k.label === 'Send A'
+    k.label === 'Gain' ||
+    k.label === 'Pan' ||
+    k.label === 'Send A' ||
+    k.label === 'Low Cut' ||
+    k.label === 'High Cut'
   )
 )
 
