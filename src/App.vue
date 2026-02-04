@@ -372,6 +372,17 @@ function connectWs() {
       const val = msg.value
       if (!Number.isFinite(index) || index < 0 || index >= channelFaderCCOverrides.value.length) return
       channelFaderCCOverrides.value[index] = val == null || val === '' ? null : Number(val)
+    } else if (msg.type === 'preset') {
+      const p = msg.data
+      if (!p) return
+      const name = typeof msg.name === 'string' ? msg.name : ''
+      if (name) {
+        currentPresetName.value = name
+        try {
+          localStorage.setItem('harmonix_last_preset', name)
+        } catch {}
+      }
+      applyPresetData(p)
     }
   })
 }
@@ -417,6 +428,10 @@ function savePreset(name) {
   try {
     localStorage.setItem('harmonix_presets', JSON.stringify(presets))
   } catch {}
+  try {
+    localStorage.setItem('harmonix_last_preset', presetName)
+  } catch {}
+  broadcast({ type: 'preset', name: presetName, data, clientId })
   refreshPresets()
 }
 
@@ -461,6 +476,29 @@ function refreshPresets() {
   }
 }
 
+function applyPresetData(p) {
+  if (!p) return
+  if (typeof p.midiChannel === 'number') channel.value = p.midiChannel
+  const count = mixerChannels.length
+  for (let i = 0; i < count; i++) {
+    const ch = p.channels?.[i]
+    if (!ch) continue
+    channelNames.value[i] = ch.name ?? channelNames.value[i]
+    channelColors.value[i] = ch.color ?? channelColors.value[i]
+    channelFaderCCOverrides.value[i] = ch.faderCcOverride == null ? null : Number(ch.faderCcOverride)
+    const vals = ch.values
+    if (vals) {
+      channelValues.value[i].fader = Number(vals.fader ?? channelValues.value[i].fader)
+      if (Array.isArray(vals.knobs)) {
+        for (let k = 0; k < channelValues.value[i].knobs.length; k++) {
+          const v = vals.knobs[k]
+          if (Number.isFinite(Number(v))) channelValues.value[i].knobs[k] = Number(v)
+        }
+      }
+    }
+  }
+}
+
 function loadPreset(name) {
   try {
     const presets = JSON.parse(localStorage.getItem('harmonix_presets') || '{}') || {}
@@ -470,25 +508,8 @@ function loadPreset(name) {
     try {
       localStorage.setItem('harmonix_last_preset', name)
     } catch {}
-    if (typeof p.midiChannel === 'number') channel.value = p.midiChannel
-    const count = mixerChannels.length
-    for (let i = 0; i < count; i++) {
-      const ch = p.channels?.[i]
-      if (!ch) continue
-      channelNames.value[i] = ch.name ?? channelNames.value[i]
-      channelColors.value[i] = ch.color ?? channelColors.value[i]
-      channelFaderCCOverrides.value[i] = ch.faderCcOverride == null ? null : Number(ch.faderCcOverride)
-      const vals = ch.values
-      if (vals) {
-        channelValues.value[i].fader = Number(vals.fader ?? channelValues.value[i].fader)
-        if (Array.isArray(vals.knobs)) {
-          for (let k = 0; k < channelValues.value[i].knobs.length; k++) {
-            const v = vals.knobs[k]
-            if (Number.isFinite(Number(v))) channelValues.value[i].knobs[k] = Number(v)
-          }
-        }
-      }
-    }
+    applyPresetData(p)
+    broadcast({ type: 'preset', name, data: p, clientId })
   } catch {}
 }
 
