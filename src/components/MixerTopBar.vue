@@ -77,9 +77,9 @@ onUnmounted(() => {
 
 <template>
   <header
-    class="relative z-[60] border-b border-slate-800 bg-slate-900/70 backdrop-blur flex items-center justify-between gap-4 px-4 sm:px-6 py-3 sm:py-4"
+    class="relative z-[60] border-b border-slate-800 bg-slate-900/70 backdrop-blur flex items-center justify-between gap-4 px-4 sm:px-6 py-2 sm:py-2"
   >
-    <div class="min-w-0">
+    <div class="min-w-0 flex items-center gap-2">
       <h1 class="text-lg sm:text-xl font-semibold tracking-tight truncate">
         Harmonix
       </h1>

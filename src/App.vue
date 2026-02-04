@@ -4,6 +4,7 @@ import { ref, onMounted } from 'vue'
 import MixerTopBar from './components/MixerTopBar.vue'
 import MixerChannel from './components/MixerChannel.vue'
 import MixerLegend from './components/MixerLegend.vue'
+import { ref as vueRef } from 'vue'
 
 const params = new URLSearchParams(window.location.search)
 const mode = ref(params.get('mode') === 'remote' ? 'remote' : 'host') // host on Mac, remote on phone
@@ -28,6 +29,8 @@ const midi = ref(null)
 const outputs = ref([])
 const outputId = ref('')
 const channel = ref(0)
+const selectedChannelIndex = ref(0)
+const showToolbar = ref(true)
 
 // Smooth incoming CC → UI updates (prevents jitter when DAW streams CC)
 let incomingRaf = 0
@@ -90,10 +93,11 @@ function getFaderCC(index) {
 // UI values for each channel, driven by both user interaction and incoming MIDI
 const channelValues = ref(
   mixerChannels.map(() => ({
-    fader: 100,
+    fader: 64,
     knobs: [64, 64, 64, 64, 64]
   }))
 )
+const channelRefs = vueRef([])
 
 onMounted(async () => {
   connectWs()
@@ -325,6 +329,42 @@ function manualReconnect() {
 
     <main class="flex-1 overflow-hidden">
       <div class="h-full flex flex-col">
+        <div class="border-b border-slate-800 bg-slate-900/80 backdrop-blur px-6 py-3 flex items-center gap-4">
+          <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-300">
+            {{ channelNames[selectedChannelIndex] }} • CC {{ getFaderCC(selectedChannelIndex) }}
+          </div>
+          <div class="ml-auto">
+            <button
+              type="button"
+              class="px-2 py-1 rounded-md bg-slate-800/80 border border-slate-700 text-slate-300 text-[11px]"
+              @click="showToolbar = !showToolbar"
+            >
+              {{ showToolbar ? 'Hide' : 'Show' }}
+            </button>
+          </div>
+        </div>
+        <div v-show="showToolbar" class="border-b border-slate-800 bg-slate-900/80 backdrop-blur px-6 py-3 flex items-center gap-4">
+          <button
+            type="button"
+            class="p-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 transition-colors hover:border-slate-500 flex items-center gap-2"
+            title="Customize track"
+            aria-label="Customize track"
+            @click="channelRefs[selectedChannelIndex]?.openSettings()"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="21" y1="4" x2="14" y2="4" />
+              <line x1="10" y1="4" x2="3" y2="4" />
+              <line x1="21" y1="12" x2="12" y2="12" />
+              <line x1="8" y1="12" x2="3" y2="12" />
+              <line x1="21" y1="20" x2="16" y2="20" />
+              <line x1="12" y1="20" x2="3" y2="20" />
+              <circle cx="12" cy="4" r="2" />
+              <circle cx="8" cy="12" r="2" />
+              <circle cx="16" cy="20" r="2" />
+            </svg>
+            <span class="text-[11px] font-semibold uppercase tracking-wide">Customize</span>
+          </button>
+        </div>
         <div class="flex-1 overflow-x-auto overflow-y-hidden">
           <div
             class="h-full flex gap-4 px-6 py-6 pb-16 min-w-max bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"
@@ -338,6 +378,9 @@ function manualReconnect() {
               :color="channelColors[index]"
               :fader-cc-override="channelFaderCCOverrides[index]"
               :send-cc="sendCC"
+              :selected="selectedChannelIndex === index"
+              :ref="el => (channelRefs[index] = el)"
+              @update:selected="val => { if (val) selectedChannelIndex = index }"
               @update:fader="val => (channelValues[index].fader = val)"
               @update:knob="payload => (channelValues[index].knobs[payload.index] = payload.value)"
               @update:name="

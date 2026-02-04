@@ -41,7 +41,8 @@ function onPointerDown(e) {
   const now = performance.now ? performance.now() : Date.now()
   if (e.pointerType === 'touch' && now - lastTapTs < 300) {
     const center = Math.round((props.min + props.max) / 2)
-    emit('input', clamp(center))
+    const defVal = props.mode === 'pan' ? center : 0
+    emit('input', clamp(defVal))
     lastTapTs = 0
     return
   }
