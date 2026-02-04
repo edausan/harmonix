@@ -50,6 +50,10 @@ const props = defineProps({
   onDeletePreset: {
     type: Function,
     default: null
+  },
+  currentPresetName: {
+    type: String,
+    default: ''
   }
 })
 
@@ -59,6 +63,9 @@ const popoverOpen = ref(false)
 const popoverEl = ref(null)
 const triggerEl = ref(null)
 const presetName = ref('')
+const presetOpen = ref(false)
+const presetEl = ref(null)
+const presetTriggerEl = ref(null)
 
 function togglePopover() {
   popoverOpen.value = !popoverOpen.value
@@ -77,6 +84,15 @@ function handleClickOutside(e) {
     !triggerEl.value.contains(e.target)
   ) {
     closePopover()
+  }
+  if (
+    presetOpen.value &&
+    presetEl.value &&
+    presetTriggerEl.value &&
+    !presetEl.value.contains(e.target) &&
+    !presetTriggerEl.value.contains(e.target)
+  ) {
+    presetOpen.value = false
   }
 }
 
@@ -97,6 +113,10 @@ function savePresetClick() {
   presetName.value = ''
   closePopover()
 }
+
+function togglePresetDropdown() {
+  presetOpen.value = !presetOpen.value
+}
 </script>
 
 <template>
@@ -113,7 +133,65 @@ function savePresetClick() {
       </p>
     </div>
 
-    <div class="relative flex-shrink-0" ref="triggerEl">
+    <div class="relative flex-shrink-0 flex items-center gap-2">
+      <div class="relative" ref="presetTriggerEl">
+        <button
+          type="button"
+          class="h-9 px-3 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-200 text-sm hover:border-slate-600 transition-colors touch-manipulation flex items-center gap-1"
+          title="Presets"
+          aria-label="Open presets"
+          @click="togglePresetDropdown"
+        >
+          <span class="truncate max-w-[8rem]">{{ currentPresetName || 'Presets' }}</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </button>
+        <Transition
+          enter-active-class="transition duration-150 ease-out"
+          enter-from-class="opacity-0 scale-95"
+          enter-to-class="opacity-100 scale-100"
+          leave-active-class="transition duration-100 ease-in"
+          leave-from-class="opacity-100 scale-100"
+          leave-to-class="opacity-0 scale-95"
+        >
+          <div
+            v-show="presetOpen"
+            ref="presetEl"
+            class="absolute right-0 top-full mt-2 z-[100] w-[min(260px,calc(100vw-2rem))] rounded-xl border border-slate-700 bg-slate-900 shadow-xl shadow-black/50 py-2"
+            role="listbox"
+            aria-label="Presets"
+          >
+            <div v-if="presetNames.length === 0" class="px-3 py-2 text-[11px] text-slate-400">No presets</div>
+            <ul v-else class="max-h-48 overflow-auto">
+              <li v-for="name in presetNames" :key="name" class="group flex items-center justify-between">
+                <button
+                  type="button"
+                  class="flex-1 text-left px-3 py-2 text-[12px] text-slate-200 hover:bg-slate-800/70"
+                  @click="onLoadPreset && onLoadPreset(name); presetOpen = false"
+                >
+                  {{ name }}
+                </button>
+                <button
+                  type="button"
+                  class="ml-2 mr-2 p-1.5 rounded-md text-slate-400 hover:text-red-400 hover:bg-slate-800/60"
+                  title="Delete preset"
+                  aria-label="Delete preset"
+                  @click.stop="onDeletePreset && onDeletePreset(name)"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                  </svg>
+                </button>
+              </li>
+            </ul>
+          </div>
+        </Transition>
+      </div>
+      <div class="relative" ref="triggerEl">
       <button
         type="button"
         class="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-400 hover:text-emerald-400 hover:border-emerald-400/70 transition-colors touch-manipulation"
@@ -201,31 +279,6 @@ function savePresetClick() {
                 </button>
               </div>
             </div>
-            <div class="px-2.5 py-2 rounded-lg bg-slate-800/80 border border-slate-700 space-y-2">
-              <div class="text-[10px] uppercase tracking-wide text-slate-500">Presets</div>
-              <div v-if="presetNames.length === 0" class="text-[11px] text-slate-400">No presets yet</div>
-              <div v-else class="max-h-48 overflow-auto space-y-1">
-                <div v-for="name in presetNames" :key="name" class="flex items-center gap-2">
-                  <div class="flex-1 text-[12px] text-slate-200 truncate">{{ name }}</div>
-                  <button
-                    type="button"
-                    class="h-8 px-2 rounded-md border text-[11px] bg-slate-800 border-slate-700 text-slate-200 hover:border-emerald-400/60"
-                    @click="onLoadPreset && onLoadPreset(name)"
-                    title="Load preset"
-                  >
-                    Load
-                  </button>
-                  <button
-                    type="button"
-                    class="h-8 px-2 rounded-md border text-[11px] bg-slate-800 border-slate-700 text-slate-400 hover:border-red-400/60 hover:text-red-300"
-                    @click="onDeletePreset && onDeletePreset(name)"
-                    title="Delete preset"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </div>
 
             <!-- MIDI Output & Channel - aligned -->
             <div class="border-t border-slate-700/80 pt-4 space-y-3">
@@ -268,6 +321,7 @@ function savePresetClick() {
           </div>
         </div>
       </Transition>
+    </div>
     </div>
   </header>
 </template>

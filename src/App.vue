@@ -111,7 +111,9 @@ onMounted(async () => {
       }
     }
   } catch {}
+  ensureDefaultPreset()
   refreshPresets()
+  if (!currentPresetName.value) currentPresetName.value = DEFAULT_PRESET_NAME
 })
 
 function send(status, d1, d2) {
@@ -316,6 +318,7 @@ function savePreset(name) {
     typeof name === 'string' && name.trim()
       ? name.trim()
       : `Preset ${new Date().toISOString().replace(/[:.]/g, '-')}`
+  currentPresetName.value = presetName
   const data = {
     version: 1,
     midiChannel: channel.value,
@@ -343,6 +346,36 @@ function savePreset(name) {
 }
 
 const presetNames = ref([])
+const currentPresetName = ref('')
+const DEFAULT_PRESET_NAME = 'Default'
+
+function ensureDefaultPreset() {
+  let presets = {}
+  try {
+    presets = JSON.parse(localStorage.getItem('harmonix_presets') || '{}') || {}
+  } catch {}
+  if (!presets[DEFAULT_PRESET_NAME]) {
+    const data = {
+      version: 1,
+      midiChannel: channel.value,
+      channels: mixerChannels.map((ch, i) => ({
+        id: ch.id,
+        name: channelNames.value[i],
+        color: channelColors.value[i],
+        faderCc: getFaderCC(i),
+        faderCcOverride: channelFaderCCOverrides.value[i],
+        values: {
+          fader: channelValues.value[i].fader,
+          knobs: [...channelValues.value[i].knobs]
+        }
+      }))
+    }
+    presets[DEFAULT_PRESET_NAME] = data
+    try {
+      localStorage.setItem('harmonix_presets', JSON.stringify(presets))
+    } catch {}
+  }
+}
 
 function refreshPresets() {
   try {
@@ -358,6 +391,7 @@ function loadPreset(name) {
     const presets = JSON.parse(localStorage.getItem('harmonix_presets') || '{}') || {}
     const p = presets[name]
     if (!p) return
+    currentPresetName.value = name
     if (typeof p.midiChannel === 'number') channel.value = p.midiChannel
     const count = mixerChannels.length
     for (let i = 0; i < count; i++) {
@@ -389,6 +423,7 @@ function deletePreset(name) {
     }
   } catch {}
   refreshPresets()
+  if (currentPresetName.value === name) currentPresetName.value = ''
 }
 </script>
 
@@ -405,6 +440,7 @@ function deletePreset(name) {
       :on-reconnect="manualReconnect"
       :on-save-preset="savePreset"
       :preset-names="presetNames"
+      :current-preset-name="currentPresetName"
       :on-load-preset="loadPreset"
       :on-delete-preset="deletePreset"
       @update:outputId="value => (outputId = value)"
