@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import logo from '../assets/harmonix_logo_only.png'
 
 const props = defineProps({
   outputs: {
@@ -77,9 +78,10 @@ onUnmounted(() => {
 
 <template>
   <header
-    class="relative z-[60] border-b border-slate-800 bg-slate-900/70 backdrop-blur flex items-center justify-between gap-4 px-4 sm:px-6 py-2 sm:py-2"
+    class="fixed top-0 left-0 right-0 z-[60] border-b border-slate-800 bg-slate-900/70 backdrop-blur flex items-center justify-between gap-4 px-4 sm:px-6 h-14 sm:h-16"
   >
     <div class="min-w-0 flex items-center gap-2">
+      <img :src="logo" alt="Harmonix" class="h-7 w-7 rounded-lg shadow-md shadow-black/30" />
       <h1 class="text-lg sm:text-xl font-semibold tracking-tight truncate">
         Harmonix
       </h1>

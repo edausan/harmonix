@@ -312,7 +312,7 @@ function manualReconnect() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-950 text-slate-50 flex flex-col">
+  <div class="min-h-screen bg-slate-950 text-slate-50 flex flex-col pt-14 sm:pt-16">
     <MixerTopBar
       :outputs="outputs"
       :output-id="outputId"

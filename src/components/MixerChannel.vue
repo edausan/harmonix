@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed, onUnmounted } from 'vue'
+import { ref, watch, computed, onUnmounted, onMounted } from 'vue'
 import MixerKnob from './MixerKnob.vue'
 
 const props = defineProps({
@@ -50,6 +50,24 @@ const localFaderCc = ref(
     : ''
 )
 const localName = ref(props.name ?? props.channelConfig.name ?? '')
+
+const faderBgEl = ref(null)
+const sliderWidthPx = ref('')
+let faderResizeObserver = null
+
+function updateSliderWidth() {
+  const el = faderBgEl.value
+  if (!el) return
+  sliderWidthPx.value = el.clientHeight + 'px'
+}
+
+onMounted(() => {
+  updateSliderWidth()
+  try {
+    faderResizeObserver = new ResizeObserver(() => updateSliderWidth())
+    if (faderBgEl.value) faderResizeObserver.observe(faderBgEl.value)
+  } catch {}
+})
 
 watch(
   () => props.name,
@@ -111,6 +129,9 @@ watch(settingsOpen, isOpen => {
 
 onUnmounted(() => {
   document.removeEventListener('keydown', onSettingsKeydown)
+  try {
+    if (faderResizeObserver) faderResizeObserver.disconnect()
+  } catch {}
 })
 
 function openSettings() {
@@ -218,11 +239,12 @@ function formatDb(value) {
 
 <template>
   <div
-    class="channel-flip-wrapper w-28 sm:w-32 h-[calc(100vh-150px)]"
+    class="channel-flip-wrapper w-28 sm:w-32 h-[calc(100dvh-12rem)] sm:h-[calc(100dvh-14rem)] md:h-[calc(100dvh-16rem)]"
     :style="{
       '--channel-color': color,
       '--channel-color-glow': color + '40',
-      '--channel-bg': color + '18'
+      '--channel-bg': color + '18',
+      '--fader-thickness': 'clamp(8px, 1.8vh, 12px)'
     }"
     @pointerdown="onChannelInteract"
     @touchstart.passive="onChannelInteract"
@@ -247,16 +269,19 @@ function formatDb(value) {
 
         <div class="flex-1 flex flex-col items-center justify-end w-full">
           <div class="h-full flex items-center justify-center mb-2">
-            <div class="relative h-full w-12 flex items-center justify-center">
+            <div class="relative h-full w-10 sm:w-12 flex items-center justify-center">
               <div
-                class="pointer-events-none absolute left-1/2 -translate-x-1/2 top-2 bottom-2 w-3 rounded-full bg-slate-800/70 border border-slate-700/60"
+                class="mixer-fader-bg pointer-events-none absolute left-1/2 -translate-x-1/2 top-2 bottom-2 rounded-full bg-slate-800/70 border border-slate-700/60"
+                ref="faderBgEl"
+                :style="{ width: 'var(--fader-thickness)' }"
               ></div>
               <input
                 type="range"
                 min="0"
                 max="127"
                 :value="values?.fader ?? 64"
-                class="mixer-fader absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-40 -rotate-90"
+                class="mixer-fader absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[clamp(7rem,30vh,18rem)] sm:w-[clamp(8rem,36vh,20rem)] md:w-[clamp(9rem,40vh,22rem)] lg:w-[clamp(10rem,44vh,24rem)] -rotate-90"
+                :style="{ height: 'var(--fader-thickness)', width: sliderWidthPx }"
                 @pointerdown="onFaderPointerDown"
                 @input="onFaderInput($event)"
                 @dblclick="onFaderDoubleClick"
@@ -505,8 +530,7 @@ function formatDb(value) {
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
-  height: 12px; /* match track bar width so fader thumb is centered on it */
-  width: 28rem; /* vertical travel when rotated */
+  height: var(--fader-thickness);
   touch-action: none;
 }
 
@@ -537,13 +561,13 @@ function formatDb(value) {
 }
 
 .mixer-fader::-webkit-slider-runnable-track {
-  height: 12px;
+  height: var(--fader-thickness);
   border-radius: 9999px;
   background: linear-gradient(to right, rgb(15 23 42), rgb(30 41 59));
 }
 
 .mixer-fader::-moz-range-track {
-  height: 12px;
+  height: var(--fader-thickness);
   border-radius: 9999px;
   background: linear-gradient(to right, rgb(15 23 42), rgb(30 41 59));
 }
