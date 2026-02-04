@@ -38,6 +38,18 @@ const props = defineProps({
   onSavePreset: {
     type: Function,
     default: null
+  },
+  presetNames: {
+    type: Array,
+    default: () => []
+  },
+  onLoadPreset: {
+    type: Function,
+    default: null
+  },
+  onDeletePreset: {
+    type: Function,
+    default: null
   }
 })
 
@@ -187,6 +199,31 @@ function savePresetClick() {
                 >
                   Save
                 </button>
+              </div>
+            </div>
+            <div class="px-2.5 py-2 rounded-lg bg-slate-800/80 border border-slate-700 space-y-2">
+              <div class="text-[10px] uppercase tracking-wide text-slate-500">Presets</div>
+              <div v-if="presetNames.length === 0" class="text-[11px] text-slate-400">No presets yet</div>
+              <div v-else class="max-h-48 overflow-auto space-y-1">
+                <div v-for="name in presetNames" :key="name" class="flex items-center gap-2">
+                  <div class="flex-1 text-[12px] text-slate-200 truncate">{{ name }}</div>
+                  <button
+                    type="button"
+                    class="h-8 px-2 rounded-md border text-[11px] bg-slate-800 border-slate-700 text-slate-200 hover:border-emerald-400/60"
+                    @click="onLoadPreset && onLoadPreset(name)"
+                    title="Load preset"
+                  >
+                    Load
+                  </button>
+                  <button
+                    type="button"
+                    class="h-8 px-2 rounded-md border text-[11px] bg-slate-800 border-slate-700 text-slate-400 hover:border-red-400/60 hover:text-red-300"
+                    @click="onDeletePreset && onDeletePreset(name)"
+                    title="Delete preset"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
 

@@ -111,6 +111,7 @@ onMounted(async () => {
       }
     }
   } catch {}
+  refreshPresets()
 })
 
 function send(status, d1, d2) {
@@ -338,6 +339,56 @@ function savePreset(name) {
   try {
     localStorage.setItem('harmonix_presets', JSON.stringify(presets))
   } catch {}
+  refreshPresets()
+}
+
+const presetNames = ref([])
+
+function refreshPresets() {
+  try {
+    const presets = JSON.parse(localStorage.getItem('harmonix_presets') || '{}') || {}
+    presetNames.value = Object.keys(presets)
+  } catch {
+    presetNames.value = []
+  }
+}
+
+function loadPreset(name) {
+  try {
+    const presets = JSON.parse(localStorage.getItem('harmonix_presets') || '{}') || {}
+    const p = presets[name]
+    if (!p) return
+    if (typeof p.midiChannel === 'number') channel.value = p.midiChannel
+    const count = mixerChannels.length
+    for (let i = 0; i < count; i++) {
+      const ch = p.channels?.[i]
+      if (!ch) continue
+      channelNames.value[i] = ch.name ?? channelNames.value[i]
+      channelColors.value[i] = ch.color ?? channelColors.value[i]
+      channelFaderCCOverrides.value[i] = ch.faderCcOverride == null ? null : Number(ch.faderCcOverride)
+      const vals = ch.values
+      if (vals) {
+        channelValues.value[i].fader = Number(vals.fader ?? channelValues.value[i].fader)
+        if (Array.isArray(vals.knobs)) {
+          for (let k = 0; k < channelValues.value[i].knobs.length; k++) {
+            const v = vals.knobs[k]
+            if (Number.isFinite(Number(v))) channelValues.value[i].knobs[k] = Number(v)
+          }
+        }
+      }
+    }
+  } catch {}
+}
+
+function deletePreset(name) {
+  try {
+    const presets = JSON.parse(localStorage.getItem('harmonix_presets') || '{}') || {}
+    if (presets[name]) {
+      delete presets[name]
+      localStorage.setItem('harmonix_presets', JSON.stringify(presets))
+    }
+  } catch {}
+  refreshPresets()
 }
 </script>
 
@@ -353,6 +404,9 @@ function savePreset(name) {
       :sync-listen-to-ableton="syncListenToAbleton"
       :on-reconnect="manualReconnect"
       :on-save-preset="savePreset"
+      :preset-names="presetNames"
+      :on-load-preset="loadPreset"
+      :on-delete-preset="deletePreset"
       @update:outputId="value => (outputId = value)"
       @update:channel="value => (channel = value)"
       @update:syncListenToAbleton="value => (syncListenToAbleton = value)"
