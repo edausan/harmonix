@@ -54,7 +54,7 @@ const DEFAULT_CHANNEL_NAMES = [
   "CH 10",
 ]
 
-// 10 mixer channels, each with 1 fader + 5 knobs
+// 10 mixer channels, each with 1 fader + knobs (Gain, Pan, Sends A–D)
 const mixerChannels = Array.from({ length: 10 }, (_, i) => {
   const index = i + 1
   const base = 20 + i // faders: 20–29
@@ -67,7 +67,8 @@ const mixerChannels = Array.from({ length: 10 }, (_, i) => {
       { label: 'Pan', cc: 60 + i },
       { label: 'Send A', cc: 90 + i },
       { label: 'Send B', cc: 100 + i },
-      { label: 'Send C', cc: 110 + i }
+      { label: 'Send C', cc: 110 + i },
+      { label: 'Send D', cc: 80 + i }
     ]
   }
 })
@@ -95,7 +96,7 @@ function getFaderCC(index) {
 const channelValues = ref(
   mixerChannels.map(() => ({
     fader: 64,
-    knobs: [64, 64, 64, 64, 64]
+    knobs: [64, 64, 0, 0, 0, 0]
   }))
 )
 const channelRefs = vueRef([])
@@ -171,6 +172,13 @@ function applyCCToState(cc, value) {
   if (cc >= 110 && cc < 110 + numChannels) {
     const index = cc - 110
     if (channelValues.value[index]) channelValues.value[index].knobs[4] = value
+    return true
+  }
+
+  // Send D knobs: CC 80–89 (index 5)
+  if (cc >= 80 && cc < 80 + numChannels) {
+    const index = cc - 80
+    if (channelValues.value[index]) channelValues.value[index].knobs[5] = value
     return true
   }
 
@@ -466,10 +474,11 @@ function deletePreset(name) {
           </div>
         </div>
         <div v-show="showToolbar" class="border-b border-slate-800 bg-slate-900/80 backdrop-blur px-6 py-3 flex items-center gap-4">
-          <div class="inline-flex rounded-lg overflow-hidden border border-slate-700">
+          <div class="flex-1 min-w-0 overflow-x-auto touch-pan-x">
+            <div class="inline-flex rounded-lg overflow-hidden border border-slate-700">
             <button
               type="button"
-              class="px-3 py-1.5 text-[11px] tracking-wide transition-colors touch-manipulation border-r border-slate-700"
+              class="px-3 py-1.5 text-[11px] tracking-wide transition-colors touch-manipulation border-r border-slate-700 min-w-[5.5rem]"
               :class="toolbarTab === 'Faders' ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/60' : 'bg-slate-800 text-slate-200 hover:border-slate-600'"
               @click="toolbarTab = 'Faders'"
             >
@@ -477,7 +486,7 @@ function deletePreset(name) {
             </button>
             <button
               type="button"
-              class="px-3 py-1.5 text-[11px] tracking-wide transition-colors touch-manipulation border-r border-slate-700"
+              class="px-3 py-1.5 text-[11px] tracking-wide transition-colors touch-manipulation border-r border-slate-700 min-w-[5.5rem]"
               :class="toolbarTab === 'Processing' ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/60' : 'bg-slate-800 text-slate-200 hover:border-slate-600'"
               @click="toolbarTab = 'Processing'"
             >
@@ -485,7 +494,7 @@ function deletePreset(name) {
             </button>
             <button
               type="button"
-              class="px-3 py-1.5 text-[11px] tracking-wide transition-colors touch-manipulation border-r border-slate-700"
+              class="px-3 py-1.5 text-[11px] tracking-wide transition-colors touch-manipulation border-r border-slate-700 min-w-[5.5rem]"
               :class="toolbarTab === 'Effects' ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/60' : 'bg-slate-800 text-slate-200 hover:border-slate-600'"
               @click="toolbarTab = 'Effects'"
             >
@@ -493,12 +502,13 @@ function deletePreset(name) {
             </button>
             <button
               type="button"
-              class="px-3 py-1.5 text-[11px] tracking-wide transition-colors touch-manipulation"
+              class="px-3 py-1.5 text-[11px] tracking-wide transition-colors touch-manipulation min-w-[5.5rem]"
               :class="toolbarTab === 'Sends' ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/60' : 'bg-slate-800 text-slate-200 hover:border-slate-600'"
               @click="toolbarTab = 'Sends'"
             >
               Sends
             </button>
+            </div>
           </div>
           <button
             type="button"
@@ -560,68 +570,47 @@ function deletePreset(name) {
           <div v-else-if="toolbarTab === 'Processing'" class="h-full px-6 py-6 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"></div>
           <div v-else-if="toolbarTab === 'Effects'" class="h-full px-6 py-6 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"></div>
           <div v-else-if="toolbarTab === 'Sends'" class="h-full px-6 py-6 min-w-max bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-            <div class="flex gap-4">
-              <div
-                v-for="(ch, index) in mixerChannels"
-                :key="ch.id"
-                class="w-28 sm:w-32 h-[calc(100dvh-16rem)] flex flex-col items-center border border-slate-800/60 rounded-2xl bg-slate-900/50"
-              >
-                <div class="w-full px-3 py-2 text-[10px] font-semibold tracking-widest uppercase text-slate-200 text-center truncate">
-                  {{ channelNames[index] }}
-                </div>
-                <div class="flex-1 w-full flex items-end justify-center gap-3 pb-4">
-                  <div class="relative h-full w-10 sm:w-12 flex items-center justify-center">
-                    <input
-                      type="range"
-                      min="0"
-                      max="127"
-                      :value="channelValues[index].knobs[1]"
-                      class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[clamp(7rem,30vh,18rem)] sm:w-[clamp(8rem,36vh,20rem)] md:w-[clamp(9rem,40vh,22rem)] -rotate-90"
-                      style="height: 10px"
-                      @input="sendCC(60 + index, ($event.target && $event.target.value) || 0)"
-                    />
-                  </div>
-                  <div class="relative h-full w-10 sm:w-12 flex items-center justify-center">
-                    <input
-                      type="range"
-                      min="0"
-                      max="127"
-                      :value="channelValues[index].knobs[2]"
-                      class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[clamp(7rem,30vh,18rem)] sm:w-[clamp(8rem,36vh,20rem)] md:w-[clamp(9rem,40vh,22rem)] -rotate-90"
-                      style="height: 10px"
-                      @input="sendCC(90 + index, ($event.target && $event.target.value) || 0)"
-                    />
-                  </div>
-                  <div class="relative h-full w-10 sm:w-12 flex items-center justify-center">
-                    <input
-                      type="range"
-                      min="0"
-                      max="127"
-                      :value="channelValues[index].knobs[3]"
-                      class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[clamp(7rem,30vh,18rem)] sm:w-[clamp(8rem,36vh,20rem)] md:w-[clamp(9rem,40vh,22rem)] -rotate-90"
-                      style="height: 10px"
-                      @input="sendCC(100 + index, ($event.target && $event.target.value) || 0)"
-                    />
-                  </div>
-                  <div class="relative h-full w-10 sm:w-12 flex items-center justify-center">
-                    <input
-                      type="range"
-                      min="0"
-                      max="127"
-                      :value="channelValues[index].knobs[4]"
-                      class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[clamp(7rem,30vh,18rem)] sm:w-[clamp(8rem,36vh,20rem)] md:w-[clamp(9rem,40vh,22rem)] -rotate-90"
-                      style="height: 10px"
-                      @input="sendCC(110 + index, ($event.target && $event.target.value) || 0)"
-                    />
-                  </div>
-                </div>
-                <div class="w-full px-2 pb-3 flex items-center justify-center gap-3 text-[10px] text-slate-300">
-                  <span>Pan</span>
-                  <span>Send A</span>
-                  <span>Send B</span>
-                  <span>Send C</span>
-                </div>
-              </div>
+            <div class="h-full flex gap-4 pb-16">
+              <MixerChannel
+                :channel-config="{ id: 'sendA', name: 'Send A', faderCC: 90 + selectedChannelIndex, knobs: [] }"
+                :name="'Send A'"
+                :subtitle="'CC ' + (90 + selectedChannelIndex)"
+                :values="{ fader: channelValues[selectedChannelIndex].knobs[2], knobs: [] }"
+                :color="channelColors[selectedChannelIndex]"
+                :fader-cc-override="90 + selectedChannelIndex"
+                :send-cc="sendCC"
+                @update:fader="val => (channelValues[selectedChannelIndex].knobs[2] = val)"
+              />
+              <MixerChannel
+                :channel-config="{ id: 'sendB', name: 'Send B', faderCC: 100 + selectedChannelIndex, knobs: [] }"
+                :name="'Send B'"
+                :subtitle="'CC ' + (100 + selectedChannelIndex)"
+                :values="{ fader: channelValues[selectedChannelIndex].knobs[3], knobs: [] }"
+                :color="channelColors[selectedChannelIndex]"
+                :fader-cc-override="100 + selectedChannelIndex"
+                :send-cc="sendCC"
+                @update:fader="val => (channelValues[selectedChannelIndex].knobs[3] = val)"
+              />
+              <MixerChannel
+                :channel-config="{ id: 'sendC', name: 'Send C', faderCC: 110 + selectedChannelIndex, knobs: [] }"
+                :name="'Send C'"
+                :subtitle="'CC ' + (110 + selectedChannelIndex)"
+                :values="{ fader: channelValues[selectedChannelIndex].knobs[4], knobs: [] }"
+                :color="channelColors[selectedChannelIndex]"
+                :fader-cc-override="110 + selectedChannelIndex"
+                :send-cc="sendCC"
+                @update:fader="val => (channelValues[selectedChannelIndex].knobs[4] = val)"
+              />
+              <MixerChannel
+                :channel-config="{ id: 'sendD', name: 'Send D', faderCC: 80 + selectedChannelIndex, knobs: [] }"
+                :name="'Send D'"
+                :subtitle="'CC ' + (80 + selectedChannelIndex)"
+                :values="{ fader: channelValues[selectedChannelIndex].knobs[5], knobs: [] }"
+                :color="channelColors[selectedChannelIndex]"
+                :fader-cc-override="80 + selectedChannelIndex"
+                :send-cc="sendCC"
+                @update:fader="val => (channelValues[selectedChannelIndex].knobs[5] = val)"
+              />
             </div>
           </div>
         </div>

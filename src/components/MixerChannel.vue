@@ -7,6 +7,10 @@ const props = defineProps({
     type: Object,
     required: true
   },
+  subtitle: {
+    type: String,
+    required: false
+  },
   sendCc: {
     type: Function,
     required: true
@@ -50,6 +54,12 @@ const localFaderCc = ref(
     : ''
 )
 const localName = ref(props.name ?? props.channelConfig.name ?? '')
+
+const visibleKnobs = computed(() =>
+  (props.channelConfig.knobs || []).filter(k =>
+    k.label === 'Gain' || k.label === 'Pan' || k.label === 'Send A'
+  )
+)
 
 const faderBgEl = ref(null)
 const sliderWidthPx = ref('')
@@ -281,6 +291,9 @@ function formatDb(value) {
           >
             {{ name || channelConfig.name }}
           </div>
+          <div v-if="subtitle" class="px-3 py-0.5 text-[9px] font-normal text-slate-500 text-center truncate">
+            #{{ effectiveFaderCC }}
+          </div>
           <div class="w-full border-t border-slate-700/60 mt-2"></div>
         </div>
 
@@ -341,7 +354,7 @@ function formatDb(value) {
 
         <div class="flex-1 flex flex-col items-center justify-center gap-6 w-full min-h-0">
           <div
-            v-for="(k, index) in channelConfig.knobs"
+            v-for="(k, index) in visibleKnobs"
             :key="k.cc"
             class="flex flex-col items-center gap-3 w-full"
           >
