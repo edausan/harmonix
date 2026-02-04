@@ -55,7 +55,7 @@ function onPointerDown(e) {
 
 function onDoubleClick() {
   const center = Math.round((props.min + props.max) / 2)
-  emit('input', clamp(center))
+  emit('input', clamp(props.mode === 'pan' ? center : 0))
 }
 
 function onPointerMove(e) {
