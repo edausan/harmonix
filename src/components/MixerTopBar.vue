@@ -34,6 +34,10 @@ const props = defineProps({
   onReconnect: {
     type: Function,
     default: null
+  },
+  onSavePreset: {
+    type: Function,
+    default: null
   }
 })
 
@@ -42,6 +46,7 @@ const emit = defineEmits(['update:outputId', 'update:channel', 'update:syncListe
 const popoverOpen = ref(false)
 const popoverEl = ref(null)
 const triggerEl = ref(null)
+const presetName = ref('')
 
 function togglePopover() {
   popoverOpen.value = !popoverOpen.value
@@ -74,6 +79,12 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
+
+function savePresetClick() {
+  if (props.onSavePreset) props.onSavePreset(presetName.value)
+  presetName.value = ''
+  closePopover()
+}
 </script>
 
 <template>
@@ -158,6 +169,25 @@ onUnmounted(() => {
             <div class="px-2.5 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700">
               <span class="text-[10px] uppercase tracking-wide text-slate-500 block">WebSocket</span>
               <span class="text-[11px] text-slate-300 break-all">{{ bridgeUrl }}</span>
+            </div>
+            <div class="px-2.5 py-2 rounded-lg bg-slate-800/80 border border-slate-700 space-y-2">
+              <label class="text-[10px] uppercase tracking-wide text-slate-500 block">Preset name</label>
+              <div class="flex gap-2">
+                <input
+                  type="text"
+                  v-model="presetName"
+                  placeholder="My Preset"
+                  class="flex-1 h-9 rounded-lg bg-slate-800 border border-slate-700 px-3 text-sm text-slate-200 outline-none focus:ring-2 focus:ring-emerald-500/70 focus:border-emerald-400"
+                />
+                <button
+                  type="button"
+                  class="h-9 px-3 rounded-lg border text-sm transition-colors touch-manipulation bg-emerald-500/20 border-emerald-400/60 text-emerald-200 hover:border-emerald-400"
+                  @click="savePresetClick"
+                  title="Save current state as preset"
+                >
+                  Save
+                </button>
+              </div>
             </div>
 
             <!-- MIDI Output & Channel - aligned -->

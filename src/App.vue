@@ -309,6 +309,36 @@ function manualReconnect() {
   }
   setTimeout(() => connectWs(), 100)
 }
+
+function savePreset(name) {
+  const presetName =
+    typeof name === 'string' && name.trim()
+      ? name.trim()
+      : `Preset ${new Date().toISOString().replace(/[:.]/g, '-')}`
+  const data = {
+    version: 1,
+    midiChannel: channel.value,
+    channels: mixerChannels.map((ch, i) => ({
+      id: ch.id,
+      name: channelNames.value[i],
+      color: channelColors.value[i],
+      faderCc: getFaderCC(i),
+      faderCcOverride: channelFaderCCOverrides.value[i],
+      values: {
+        fader: channelValues.value[i].fader,
+        knobs: [...channelValues.value[i].knobs]
+      }
+    }))
+  }
+  let presets = {}
+  try {
+    presets = JSON.parse(localStorage.getItem('harmonix_presets') || '{}') || {}
+  } catch {}
+  presets[presetName] = data
+  try {
+    localStorage.setItem('harmonix_presets', JSON.stringify(presets))
+  } catch {}
+}
 </script>
 
 <template>
@@ -322,6 +352,7 @@ function manualReconnect() {
       :bridge-url="bridgeUrl"
       :sync-listen-to-ableton="syncListenToAbleton"
       :on-reconnect="manualReconnect"
+      :on-save-preset="savePreset"
       @update:outputId="value => (outputId = value)"
       @update:channel="value => (channel = value)"
       @update:syncListenToAbleton="value => (syncListenToAbleton = value)"
