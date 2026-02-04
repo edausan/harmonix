@@ -10,7 +10,9 @@ const mode = ref(params.get('mode') === 'remote' ? 'remote' : 'host') // host on
 
 const bridgeHost = params.get('bridgeHost') || window.location.hostname || 'localhost'
 const bridgePort = Number(params.get('bridgePort') || 5180)
-const bridgeUrl = ref(`ws://${bridgeHost}:${bridgePort}`)
+const isSecure = window.location.protocol === 'https:'
+const wsScheme = isSecure ? 'wss' : 'ws'
+const bridgeUrl = ref(`${wsScheme}://${bridgeHost}:${bridgePort}`)
 
 const clientId =
   (globalThis.crypto && crypto.randomUUID && crypto.randomUUID()) ||
@@ -95,18 +97,16 @@ const channelValues = ref(
 
 onMounted(async () => {
   connectWs()
-
-  // Only the host (Mac) owns MIDI ports
-  if (mode.value === 'host') {
+  try {
     midi.value = await navigator.requestMIDIAccess()
     outputs.value = [...midi.value.outputs.values()]
     outputId.value = outputs.value[0]?.id || ''
-
-    // Listen to all MIDI inputs and update UI on incoming CC (then broadcast to remotes)
-    for (const input of midi.value.inputs.values()) {
-      input.onmidimessage = handleMIDIMessage
+    if (mode.value === 'host') {
+      for (const input of midi.value.inputs.values()) {
+        input.onmidimessage = handleMIDIMessage
+      }
     }
-  }
+  } catch {}
 })
 
 function send(status, d1, d2) {
@@ -192,11 +192,8 @@ function sendCC(cc, val) {
   // Broadcast to other clients
   broadcast({ type: 'cc', cc, value, midiChannel: channel.value, clientId })
 
-  // Only host actually outputs MIDI
-  if (mode.value === 'host') {
-    lastSentCc.set(cc, { value, t: performance.now() })
-    send(0xB0, cc, value)
-  }
+  lastSentCc.set(cc, { value, t: performance.now() })
+  send(0xB0, cc, value)
 }
 
 function handleMIDIMessage(event) {
