@@ -76,6 +76,7 @@ const hudVisible = ref(false)
 const hudLabel = ref('')
 const hudValue = ref('')
 let hudTimer = 0
+const hudTop = ref(16)
 function showHud(label, value) {
   hudLabel.value = String(label || '')
   hudValue.value = String(value || '')
@@ -224,6 +225,7 @@ function onKnobInput(index, cc, valueOrEvent) {
   const label = (props.channelConfig.knobs || [])[index]?.label || 'Knob'
   const center = Math.round((0 + 127) / 2)
   const hudVal = label === 'Pan' ? (value === center ? 'Center' : value < center ? 'Left' : 'Right') : formatDb(value)
+  hudTop.value = -24
   showHud(label, hudVal)
 }
 
@@ -238,6 +240,7 @@ function onFaderInput(event) {
   }
   activateChannel()
   selected.value = true
+  hudTop.value = -14
   showHud('Vol', formatDb(value))
 }
 
@@ -249,6 +252,7 @@ function onFaderDoubleClick() {
   }
   activateChannel()
   selected.value = true
+  hudTop.value = -14
   showHud('Vol', formatDb(value))
 }
 
@@ -302,7 +306,7 @@ function formatDb(value) {
     @touchstart.passive="onChannelInteract"
     @mousedown="onChannelInteract"
   >
-    <HudOverlay :visible="hudVisible" :label="hudLabel" :value="hudValue" :top="30" :fixed="false" :z="80" />
+    <HudOverlay :visible="hudVisible" :label="hudLabel" :value="hudValue" :top="16" :fixed="false" :z="80" :dark-text="true" />
     <div
       class="channel-flip-inner rounded-2xl border shadow-lg shadow-black/40 channel-border channel-bg-inner"
       :class="{ 'channel-flipped': isFlipped, 'channel-active': isActive, 'channel-selected': selected }"

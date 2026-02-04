@@ -110,7 +110,7 @@ function onRatioSelect(index) {
     }"
     @click="onPanelClick"
   >
-    <HudOverlay :visible="hudVisible" :label="hudLabel" :value="hudValue" :top="30" :fixed="false" :z="80" />
+    <HudOverlay :visible="hudVisible" :label="hudLabel" :value="hudValue" :top="16" :fixed="false" :z="80" />
     <div class="mb-4 flex items-center justify-between">
       <div class="px-3 py-1 rounded-full text-[10px] font-semibold tracking-widest uppercase comp-title-label">
         {{ title }}

@@ -897,7 +897,7 @@ function deletePreset(name) {
     leave-from-class="opacity-100 translate-y-0"
     leave-to-class="opacity-0 -translate-y-1"
   >
-    <HudOverlay :visible="hudVisible" :label="hudLabel" :value="hudValue" :top="30" :fixed="true" :backdrop="true" :z="2147483647" :dark-text="true" />
+    <HudOverlay :visible="hudVisible" :label="hudLabel" :value="hudValue" :top="-14" :fixed="true" :backdrop="true" :z="2147483647" :dark-text="true" />
   </Transition>
 </Teleport>
 
