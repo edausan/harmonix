@@ -23,7 +23,6 @@ const emit = defineEmits([
   'update:threshold',
   'update:attack',
   'update:release',
-  'update:knee',
   'update:makeup',
   'update:ratio',
   'panelClick',
@@ -44,6 +43,43 @@ const thresholdDb = computed(() => {
   const db = -60 + (v / 127) * 60
   return Math.round(db)
 })
+const makeupDb = computed(() => {
+  const v = Number(props.values?.makeup ?? 0)
+  const db = -20 + (v / 127) * 40
+  return Math.round(db)
+})
+function formatMs(ms) {
+  if (ms < 1) return ms.toFixed(3)
+  if (ms < 10) return ms.toFixed(2)
+  if (ms < 100) return ms.toFixed(1)
+  return String(Math.round(ms))
+}
+const attackMsStr = computed(() => {
+  const v = Number(props.values?.attack ?? 0)
+  const ms = 0.005 + (v / 127) * (250 - 0.005)
+  return `${formatMs(ms)} ms`
+})
+const releaseMsStr = computed(() => {
+  const v = Number(props.values?.release ?? 0)
+  const ms = 10 + (v / 127) * (2500 - 10)
+  return `${formatMs(ms)} ms`
+})
+const ratioSteps = ['2:1', '4:1', '8:1', '10:1']
+function ratioIndexFromValue(v) {
+  const n = ratioSteps.length
+  const idx = Math.round((Number(v ?? 0) / 127) * (n - 1))
+  return Math.max(0, Math.min(n - 1, idx))
+}
+const ratioGroupName = Math.random().toString(36).slice(2)
+function onRatioSelect(index) {
+  const n = ratioSteps.length
+  const i = Math.max(0, Math.min(n - 1, Number(index)))
+  const quantized = Math.round((i / (n - 1)) * 127)
+  onVal('ratio', quantized)
+  try {
+    window.dispatchEvent(new CustomEvent('harmonix:valueHud', { detail: { label: 'Ratio', value: ratioSteps[i] } }))
+  } catch {}
+}
 </script>
 
 <template>
@@ -73,27 +109,46 @@ const thresholdDb = computed(() => {
     </div>
     <div class="grid grid-cols-3 gap-6">
       <div class="flex flex-col items-center gap-3">
-        <MixerKnob :value="values.threshold" :size="knobSize" @input="v => onVal('threshold', v)" />
+        <MixerKnob
+          :value="values.threshold"
+          :size="knobSize"
+          :hud-label="'Threshold'"
+          :hud-value="thresholdDb + ' dB'"
+          @input="v => onVal('threshold', v)"
+        />
         <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Threshold · {{ thresholdDb }} dB</span>
       </div>
       <div class="flex flex-col items-center gap-3">
-        <MixerKnob :value="values.attack" :size="knobSize" @input="v => onVal('attack', v)" />
+        <MixerKnob :value="values.attack" :size="knobSize" :hud-label="'Attack'" :hud-value="attackMsStr" @input="v => onVal('attack', v)" />
         <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Attack</span>
       </div>
       <div class="flex flex-col items-center gap-3">
-        <MixerKnob :value="values.release" :size="knobSize" @input="v => onVal('release', v)" />
+        <MixerKnob :value="values.release" :size="knobSize" :hud-label="'Release'" :hud-value="releaseMsStr" @input="v => onVal('release', v)" />
         <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Release</span>
       </div>
       <div class="flex flex-col items-center gap-3">
-        <MixerKnob :value="values.knee" :size="knobSize" @input="v => onVal('knee', v)" />
-        <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Knee</span>
-      </div>
-      <div class="flex flex-col items-center gap-3">
-        <MixerKnob :value="values.makeup" :size="knobSize" @input="v => onVal('makeup', v)" />
+        <MixerKnob :value="values.makeup" :size="knobSize" :hud-label="'Makeup Gain'" :hud-value="makeupDb + ' dB'" @input="v => onVal('makeup', v)" />
         <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Makeup Gain</span>
       </div>
       <div class="flex flex-col items-center gap-3">
-        <MixerKnob :value="values.ratio" :size="knobSize" @input="v => onVal('ratio', v)" />
+        <div class="flex items-center justify-center gap-2">
+          <label
+            v-for="(lbl, i) in ratioSteps"
+            :key="lbl"
+            class="inline-flex items-center gap-1 px-2 py-1 rounded-md border text-[10px] font-semibold cursor-pointer"
+            :class="i === ratioIndexFromValue(values.ratio) ? 'bg-slate-200 border-slate-400 text-slate-900' : 'bg-slate-800/60 border-slate-700 text-slate-300'"
+          >
+            <input
+              type="radio"
+              :name="ratioGroupName"
+              :value="i"
+              class="sr-only"
+              :checked="i === ratioIndexFromValue(values.ratio)"
+              @change="onRatioSelect(i)"
+            />
+            <span>{{ lbl }}</span>
+          </label>
+        </div>
         <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Ratio</span>
       </div>
     </div>

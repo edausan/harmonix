@@ -71,6 +71,11 @@ let faderResizeObserver = null
 const wrapperEl = ref(null)
 const knobSize = ref(58)
 let wrapperResizeObserver = null
+function showHud(label, value) {
+  try {
+    window.dispatchEvent(new CustomEvent('harmonix:valueHud', { detail: { label, value } }))
+  } catch {}
+}
 
 function updateSliderWidth() {
   const el = faderBgEl.value
@@ -219,6 +224,7 @@ function onFaderInput(event) {
   }
   activateChannel()
   selected.value = true
+  showHud('Vol', formatDb(value))
 }
 
 function onFaderDoubleClick() {
@@ -229,6 +235,7 @@ function onFaderDoubleClick() {
   }
   activateChannel()
   selected.value = true
+  showHud('Vol', formatDb(value))
 }
 
 function onFaderPointerDown(e) {
@@ -366,6 +373,8 @@ function formatDb(value) {
               :value="values?.knobs?.[index] ?? 64"
               :size="knobSize"
               :mode="k.label === 'Pan' ? 'pan' : 'default'"
+              :hud-label="k.label"
+              :hud-value="formatDb(values?.knobs?.[index] ?? 64)"
               @input="val => onKnobInput(index, k.cc, val)"
             />
             <span class="text-[9px] font-medium text-slate-300 uppercase tracking-wide">

@@ -150,6 +150,27 @@ function addCompressorFromModal(id) {
   })
   processingModalOpen.value = false
 }
+const hudVisible = ref(false)
+const hudLabel = ref('')
+const hudValue = ref('')
+let hudTimer = 0
+function showGlobalHud(label, value) {
+  hudLabel.value = String(label || '')
+  hudValue.value = String(value || '')
+  hudVisible.value = true
+  if (hudTimer) clearTimeout(hudTimer)
+  hudTimer = setTimeout(() => {
+    hudVisible.value = false
+    hudTimer = 0
+  }, 900)
+}
+function onHudEvent(e) {
+  const detail = e && e.detail
+  showGlobalHud(detail?.label, detail?.value)
+}
+onMounted(() => {
+  window.addEventListener('harmonix:valueHud', onHudEvent)
+})
 // Per-channel send filter knobs (Low/High Cut per Send A–D)
 const sendFilterValues = ref(
   mixerChannels.map(() => ({
@@ -716,7 +737,7 @@ function deletePreset(name) {
                 Add Compressor
               </button>
             </div>
-            <div class="flex flex-col items-center gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
               <div
                 v-for="plugin in processingPlugins"
                 :key="plugin.id"
@@ -738,7 +759,6 @@ function deletePreset(name) {
                   @update:threshold="v => (plugin.values.threshold = v)"
                   @update:attack="v => (plugin.values.attack = v)"
                   @update:release="v => (plugin.values.release = v)"
-                  @update:knee="v => (plugin.values.knee = v)"
                   @update:makeup="v => (plugin.values.makeup = v)"
                   @update:ratio="v => (plugin.values.ratio = v)"
                 />
@@ -866,6 +886,25 @@ function deletePreset(name) {
       </div>
     </main>
   </div>
+
+<Teleport to="body">
+  <Transition
+    enter-active-class="transition duration-150 ease-out"
+    enter-from-class="opacity-0 -translate-y-1"
+    enter-to-class="opacity-100 translate-y-0"
+    leave-active-class="transition duration-150 ease-in"
+    leave-from-class="opacity-100 translate-y-0"
+    leave-to-class="opacity-0 -translate-y-1"
+  >
+    <div
+      v-show="hudVisible"
+      class="fixed left-1/2 -translate-x-1/2 top-14 z-[80] px-3 py-2 rounded-lg bg-slate-50 text-slate-900 border border-slate-300 shadow-2xl min-w-[100px] text-center"
+    >
+      <div class="text-[11px] font-semibold tracking-wide">{{ hudLabel }}</div>
+      <div class="text-[14px] font-bold">{{ hudValue }}</div>
+    </div>
+  </Transition>
+</Teleport>
 
 <Teleport to="body">
   <Transition

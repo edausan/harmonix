@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onUnmounted } from 'vue'
+import { ref, onUnmounted, watch } from 'vue'
 
 const props = defineProps({
   value: { type: Number, default: 0 },
@@ -9,7 +9,13 @@ const props = defineProps({
   dragSensitivity: { type: Number, default: 0.6 },
   mode: { type: String, default: 'default' },
   tickArcDeg: { type: Number, default: 150 },
-  tickOffsetDeg: { type: Number, default: 10 }
+  tickOffsetDeg: { type: Number, default: 10 },
+  overlayText: { type: String, default: '' },
+  overlaySize: { type: Number, default: 20 },
+  hudLabel: { type: String, default: '' },
+  hudValue: { type: String, default: '' },
+  hudEnabled: { type: Boolean, default: true },
+  showTicks: { type: Boolean, default: true },
 })
 
 const emit = defineEmits(['input'])
@@ -18,6 +24,8 @@ const dragging = ref(false)
 let startY = 0
 let startVal = 0
 let lastTapTs = 0
+const showHud = ref(false)
+let hudTimer = 0
 
 const ticks = Array.from({ length: 13 }, (_, i) => i * 10)
 
@@ -52,11 +60,13 @@ function onPointerDown(e) {
   startVal = props.value
   window.addEventListener('pointermove', onPointerMove, { passive: false })
   window.addEventListener('pointerup', onPointerUp, { passive: false })
+  bumpHud()
 }
 
 function onDoubleClick() {
   const center = Math.round((props.min + props.max) / 2)
   emit('input', clamp(props.mode === 'pan' ? center : 0))
+  bumpHud()
 }
 
 function onPointerMove(e) {
@@ -65,6 +75,7 @@ function onPointerMove(e) {
   const dy = startY - e.clientY
   const next = clamp(startVal + dy * props.dragSensitivity)
   emit('input', next)
+  bumpHud()
 }
 
 function onPointerUp(e) {
@@ -72,12 +83,43 @@ function onPointerUp(e) {
   dragging.value = false
   window.removeEventListener('pointermove', onPointerMove)
   window.removeEventListener('pointerup', onPointerUp)
+  bumpHud()
 }
 
 onUnmounted(() => {
   window.removeEventListener('pointermove', onPointerMove)
   window.removeEventListener('pointerup', onPointerUp)
+  if (hudTimer) {
+    clearTimeout(hudTimer)
+    hudTimer = 0
+  }
 })
+
+function bumpHud() {
+  if (!props.hudEnabled) return
+  showHud.value = true
+  try {
+    if (props.hudLabel) {
+      window.dispatchEvent(
+        new CustomEvent('harmonix:valueHud', {
+          detail: { label: props.hudLabel, value: props.hudValue || String(props.value) }
+        })
+      )
+    }
+  } catch {}
+  if (hudTimer) clearTimeout(hudTimer)
+  hudTimer = setTimeout(() => {
+    showHud.value = false
+    hudTimer = 0
+  }, 900)
+}
+
+watch(
+  () => props.value,
+  () => {
+    bumpHud()
+  }
+)
 </script>
 
 <template>
@@ -95,7 +137,7 @@ onUnmounted(() => {
     @pointerdown="onPointerDown"
     @dblclick="onDoubleClick"
   >
-    <div class="knob-ticks-wrap">
+    <div v-if="showTicks" class="knob-ticks-wrap">
       <div
         v-for="tick in ticks"
         :key="tick"
@@ -109,6 +151,17 @@ onUnmounted(() => {
     </div>
     <div class="knob-visual">
       <div class="knob-indicator"></div>
+      <div
+        v-if="overlayText"
+        class="knob-overlay"
+        :style="{
+          width: overlaySize + 'px',
+          height: overlaySize + 'px',
+          lineHeight: overlaySize + 'px'
+        }"
+      >
+        {{ overlayText }}
+      </div>
     </div>
     <div v-if="mode === 'pan'" class="pan-labels">
       <span class="pan-label pan-label-left">L</span>
@@ -208,6 +261,22 @@ onUnmounted(() => {
   box-shadow:
     0 0 0 1px rgb(15 23 42),
     0 0 0 3px var(--channel-color-glow);
+}
+.knob-overlay {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+  padding: 0;
+  z-index: 2;
+  pointer-events: none;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.25);
 }
 .pan-labels {
   position: absolute;
