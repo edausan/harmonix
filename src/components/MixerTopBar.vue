@@ -67,6 +67,9 @@ const presetOpen = ref(false)
 const presetEl = ref(null)
 const presetTriggerEl = ref(null)
 
+const tapTimes = ref([])
+const bpm = ref(120)
+
 function togglePopover() {
   popoverOpen.value = !popoverOpen.value
 }
@@ -98,6 +101,26 @@ function handleClickOutside(e) {
 
 function toggleSync() {
   emit('update:syncListenToAbleton', !props.syncListenToAbleton)
+}
+
+function tapTempo() {
+  const now = performance.now ? performance.now() : Date.now()
+  const last = tapTimes.value[tapTimes.value.length - 1] || 0
+  if (!last || now - last > 2000) {
+    tapTimes.value = [now]
+    return
+  }
+  tapTimes.value.push(now)
+  if (tapTimes.value.length > 8) tapTimes.value.shift()
+  const intervals = []
+  for (let i = 1; i < tapTimes.value.length; i++) {
+    intervals.push(tapTimes.value[i] - tapTimes.value[i - 1])
+  }
+  if (intervals.length === 0) return
+  const recent = intervals.slice(-4)
+  const avgMs = recent.reduce((a, b) => a + b, 0) / recent.length
+  const calc = Math.round(60000 / avgMs)
+  bpm.value = Math.max(20, Math.min(300, calc))
 }
 
 onMounted(() => {
@@ -134,6 +157,24 @@ function togglePresetDropdown() {
     </div>
 
     <div class="relative flex-shrink-0 flex items-center gap-2">
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          class="h-9 px-3 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-200 text-sm hover:border-emerald-400/70 transition-colors touch-manipulation"
+          title="Tap Tempo"
+          aria-label="Tap tempo"
+          @click="tapTempo"
+        >
+          Tap Tempo
+        </button>
+        <div
+          v-if="bpm"
+          class="h-9 px-2 rounded-lg bg-slate-800/60 border border-slate-700 text-slate-200 text-sm flex items-center"
+          aria-label="Tempo BPM"
+        >
+          {{ bpm }} BPM
+        </div>
+      </div>
       <div class="relative" ref="presetTriggerEl">
         <button
           type="button"

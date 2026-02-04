@@ -4,6 +4,7 @@ import { ref, onMounted } from 'vue'
 import MixerTopBar from './components/MixerTopBar.vue'
 import MixerChannel from './components/MixerChannel.vue'
 import MixerLegend from './components/MixerLegend.vue'
+import CompressorUI from './components/CompressorUI.vue'
 import { ref as vueRef } from 'vue'
 
 const params = new URLSearchParams(window.location.search)
@@ -101,6 +102,54 @@ const channelValues = ref(
 )
 const channelRefs = vueRef([])
 
+const compressorValues = ref({
+  threshold: 64,
+  attack: 64,
+  release: 64,
+  knee: 64,
+  makeup: 64,
+  ratio: 64
+})
+const processingPlugins = ref([])
+let nextPluginId = 1
+function addCompressor() {
+  processingPlugins.value.push({
+    id: nextPluginId++,
+    type: 'compressor',
+    values: {
+      threshold: 64,
+      attack: 64,
+      release: 64,
+      knee: 64,
+      makeup: 64,
+      ratio: 64
+    }
+  })
+}
+const processingModalOpen = ref(false)
+const processingModalCompressors = ref([
+  {
+    id: 'modal-1',
+    values: { threshold: 64, attack: 64, release: 64, knee: 64, makeup: 64, ratio: 64 }
+  },
+  {
+    id: 'modal-2',
+    values: { threshold: 64, attack: 64, release: 64, knee: 64, makeup: 64, ratio: 64 }
+  }
+])
+function toggleProcessingModal() {
+  processingModalOpen.value = !processingModalOpen.value
+}
+function addCompressorFromModal(id) {
+  const comp = processingModalCompressors.value.find(c => c.id === id)
+  if (!comp) return
+  processingPlugins.value.push({
+    id: nextPluginId++,
+    type: 'compressor',
+    values: { ...comp.values }
+  })
+  processingModalOpen.value = false
+}
 // Per-channel send filter knobs (Low/High Cut per Send A–D)
 const sendFilterValues = ref(
   mixerChannels.map(() => ({
@@ -657,7 +706,52 @@ function deletePreset(name) {
               "
             />
           </div>
-          <div v-else-if="toolbarTab === 'Processing'" class="h-full px-6 py-6 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"></div>
+          <div v-else-if="toolbarTab === 'Processing'" class="h-full px-6 py-6 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+            <div class="mb-4 flex items-center gap-2">
+              <button
+                type="button"
+                class="px-3 py-1.5 rounded-md bg-slate-800/80 border border-slate-700 text-slate-200 text-[11px] font-semibold uppercase tracking-wide hover:border-slate-600"
+                @click="toggleProcessingModal"
+              >
+                Add Compressor
+              </button>
+            </div>
+            <div class="flex flex-col items-center gap-6">
+              <div
+                v-for="plugin in processingPlugins"
+                :key="plugin.id"
+                class="w-full relative"
+              >
+                <CompressorUI
+                  v-if="plugin.type === 'compressor'"
+                  :values="plugin.values"
+                  :color="'#c0c0c0'"
+                  :label-color="'#273444'"
+                  :knob-size="58"
+                  @update:threshold="v => (plugin.values.threshold = v)"
+                  @update:attack="v => (plugin.values.attack = v)"
+                  @update:release="v => (plugin.values.release = v)"
+                  @update:knee="v => (plugin.values.knee = v)"
+                  @update:makeup="v => (plugin.values.makeup = v)"
+                  @update:ratio="v => (plugin.values.ratio = v)"
+                />
+                <button
+                  type="button"
+                  class="absolute top-3 right-3 px-2 py-1 rounded-md bg-slate-800/80 border border-slate-700 text-slate-300 text-[11px] hover:border-red-400/70 hover:text-red-300 transition-colors"
+                  title="Remove compressor"
+                  aria-label="Remove compressor"
+                  @click="
+                    () => {
+                      const idx = processingPlugins.findIndex(p => p.id === plugin.id)
+                      if (idx >= 0) processingPlugins.splice(idx, 1)
+                    }
+                  "
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          </div>
           <div v-else-if="toolbarTab === 'Effects'" class="h-full px-6 py-6 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"></div>
           <div v-else-if="toolbarTab === 'Sends'" class="h-full px-6 py-6 min-w-max bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
             <div class="h-full flex gap-4 pb-16">
@@ -779,4 +873,59 @@ function deletePreset(name) {
       </div>
     </main>
   </div>
+
+<Teleport to="body">
+  <Transition
+    enter-active-class="transition duration-200 ease-out"
+    enter-from-class="opacity-0"
+    enter-to-class="opacity-100"
+    leave-active-class="transition duration-150 ease-in"
+    leave-from-class="opacity-100"
+    leave-to-class="opacity-0"
+  >
+    <div
+      v-show="processingModalOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center"
+      @click="e => { if (e.target === e.currentTarget) toggleProcessingModal() }"
+    >
+      <div class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
+      <div class="relative w-full max-w-5xl mx-auto px-6">
+        <div class="rounded-2xl bg-slate-900/90 border border-slate-800 shadow-2xl p-6">
+          <div class="mb-4 flex items-center justify-between">
+            <div class="text-[12px] font-semibold uppercase tracking-wider text-slate-200">Add Plugins</div>
+            <button
+              type="button"
+              class="px-2 py-1 rounded-md bg-slate-800/80 border border-slate-700 text-slate-300 text-[11px]"
+              @click="toggleProcessingModal"
+            >
+              Close
+            </button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div
+              v-for="comp in processingModalCompressors"
+              :key="comp.id"
+              class="relative"
+            >
+              <CompressorUI
+                :values="comp.values"
+                :color="'#c0c0c0'"
+                :label-color="'#273444'"
+                :knob-size="58"
+                title="Compressor"
+                @panelClick="addCompressorFromModal(comp.id)"
+                @update:threshold="v => (comp.values.threshold = v)"
+                @update:attack="v => (comp.values.attack = v)"
+                @update:release="v => (comp.values.release = v)"
+                @update:knee="v => (comp.values.knee = v)"
+                @update:makeup="v => (comp.values.makeup = v)"
+                @update:ratio="v => (comp.values.ratio = v)"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Transition>
+</Teleport>
 </template>
