@@ -1,5 +1,6 @@
 <script setup>
 import { ref, watch, computed, onUnmounted, onMounted } from 'vue'
+import HudOverlay from './HudOverlay.vue'
 import MixerKnob from './MixerKnob.vue'
 
 const props = defineProps({
@@ -71,10 +72,19 @@ let faderResizeObserver = null
 const wrapperEl = ref(null)
 const knobSize = ref(58)
 let wrapperResizeObserver = null
+const hudVisible = ref(false)
+const hudLabel = ref('')
+const hudValue = ref('')
+let hudTimer = 0
 function showHud(label, value) {
-  try {
-    window.dispatchEvent(new CustomEvent('harmonix:valueHud', { detail: { label, value } }))
-  } catch {}
+  hudLabel.value = String(label || '')
+  hudValue.value = String(value || '')
+  hudVisible.value = true
+  if (hudTimer) clearTimeout(hudTimer)
+  hudTimer = setTimeout(() => {
+    hudVisible.value = false
+    hudTimer = 0
+  }, 900)
 }
 
 function updateSliderWidth() {
@@ -211,6 +221,10 @@ function onKnobInput(index, cc, valueOrEvent) {
   }
   activateChannel()
   selected.value = true
+  const label = (props.channelConfig.knobs || [])[index]?.label || 'Knob'
+  const center = Math.round((0 + 127) / 2)
+  const hudVal = label === 'Pan' ? (value === center ? 'Center' : value < center ? 'Left' : 'Right') : formatDb(value)
+  showHud(label, hudVal)
 }
 
 function onFaderInput(event) {
@@ -276,7 +290,7 @@ function formatDb(value) {
 
 <template>
   <div
-    class="channel-flip-wrapper w-28 sm:w-32 h-[calc(100dvh-12rem)] sm:h-[calc(100dvh-14rem)] md:h-[calc(100dvh-16rem)]"
+    class="channel-flip-wrapper relative w-28 sm:w-32 h-[calc(100dvh-12rem)] sm:h-[calc(100dvh-14rem)] md:h-[calc(100dvh-16rem)]"
     ref="wrapperEl"
     :style="{
       '--channel-color': color,
@@ -288,6 +302,7 @@ function formatDb(value) {
     @touchstart.passive="onChannelInteract"
     @mousedown="onChannelInteract"
   >
+    <HudOverlay :visible="hudVisible" :label="hudLabel" :value="hudValue" :top="30" :fixed="false" :z="80" />
     <div
       class="channel-flip-inner rounded-2xl border shadow-lg shadow-black/40 channel-border channel-bg-inner"
       :class="{ 'channel-flipped': isFlipped, 'channel-active': isActive, 'channel-selected': selected }"
@@ -373,8 +388,7 @@ function formatDb(value) {
               :value="values?.knobs?.[index] ?? 64"
               :size="knobSize"
               :mode="k.label === 'Pan' ? 'pan' : 'default'"
-              :hud-label="k.label"
-              :hud-value="formatDb(values?.knobs?.[index] ?? 64)"
+              :hud-enabled="false"
               @input="val => onKnobInput(index, k.cc, val)"
             />
             <span class="text-[9px] font-medium text-slate-300 uppercase tracking-wide">

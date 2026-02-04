@@ -16,6 +16,10 @@ const props = defineProps({
   hudValue: { type: String, default: '' },
   hudEnabled: { type: Boolean, default: true },
   showTicks: { type: Boolean, default: true },
+  invertTicks: { type: Boolean, default: false },
+  resetValue: { type: Number, default: null },
+  highlightFromCenter: { type: Boolean, default: false },
+  panStyleTicks: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['input'])
@@ -30,7 +34,25 @@ let hudTimer = 0
 const ticks = Array.from({ length: 13 }, (_, i) => i * 10)
 
 function isTickActive(tick) {
-  if (props.mode !== 'pan') return props.value >= tick
+  if (props.mode !== 'pan') {
+    if (props.panStyleTicks) {
+      const center = (props.min + props.max) / 2
+      const sv = props.value - center
+      const st = tick - center
+      if (sv === 0) return false
+      const sameSide = Math.sign(sv) === Math.sign(st)
+      const within = Math.abs(st) <= Math.abs(sv)
+      return (props.invertTicks ? !sameSide : sameSide) && within
+    }
+    if (props.highlightFromCenter) {
+      const center = (props.min + props.max) / 2
+      const sv = props.value - center
+      const st = tick - center
+      if (sv === 0) return false
+      return Math.abs(st) <= Math.abs(sv)
+    }
+    return props.invertTicks ? props.value <= tick : props.value >= tick
+  }
   const center = (props.min + props.max) / 2
   const sv = props.value - center
   const st = tick - center
@@ -49,7 +71,10 @@ function onPointerDown(e) {
   const now = performance.now ? performance.now() : Date.now()
   if (e.pointerType === 'touch' && now - lastTapTs < 300) {
     const center = Math.round((props.min + props.max) / 2)
-    const defVal = props.mode === 'pan' ? center : 0
+    const defVal =
+      props.mode === 'pan'
+        ? center
+        : (props.resetValue != null ? clamp(props.resetValue) : 0)
     emit('input', clamp(defVal))
     lastTapTs = 0
     return
@@ -65,7 +90,11 @@ function onPointerDown(e) {
 
 function onDoubleClick() {
   const center = Math.round((props.min + props.max) / 2)
-  emit('input', clamp(props.mode === 'pan' ? center : 0))
+  const defVal =
+    props.mode === 'pan'
+      ? center
+      : (props.resetValue != null ? clamp(props.resetValue) : 0)
+  emit('input', clamp(defVal))
   bumpHud()
 }
 

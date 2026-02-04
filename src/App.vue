@@ -5,6 +5,7 @@ import MixerTopBar from './components/MixerTopBar.vue'
 import MixerChannel from './components/MixerChannel.vue'
 import MixerLegend from './components/MixerLegend.vue'
 import CompressorUI from './components/CompressorUI.vue'
+import HudOverlay from './components/HudOverlay.vue'
 import { ref as vueRef } from 'vue'
 
 const params = new URLSearchParams(window.location.search)
@@ -896,13 +897,7 @@ function deletePreset(name) {
     leave-from-class="opacity-100 translate-y-0"
     leave-to-class="opacity-0 -translate-y-1"
   >
-    <div
-      v-show="hudVisible"
-      class="fixed left-1/2 -translate-x-1/2 top-14 z-[80] px-3 py-2 rounded-lg bg-slate-50 text-slate-900 border border-slate-300 shadow-2xl min-w-[100px] text-center"
-    >
-      <div class="text-[11px] font-semibold tracking-wide">{{ hudLabel }}</div>
-      <div class="text-[14px] font-bold">{{ hudValue }}</div>
-    </div>
+    <HudOverlay :visible="hudVisible" :label="hudLabel" :value="hudValue" :top="30" :fixed="true" :backdrop="true" :z="2147483647" :dark-text="true" />
   </Transition>
 </Teleport>
 

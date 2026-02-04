@@ -1,6 +1,8 @@
 <script setup>
 import MixerKnob from './MixerKnob.vue'
 import { computed } from 'vue'
+import { ref } from 'vue'
+import HudOverlay from './HudOverlay.vue'
 const props = defineProps({
   values: {
     type: Object,
@@ -28,8 +30,26 @@ const emit = defineEmits([
   'panelClick',
   'remove'
 ])
+const hudVisible = ref(false)
+const hudLabel = ref('')
+const hudValue = ref('')
+let hudTimer = 0
+function showLocalHud(label, value) {
+  hudLabel.value = String(label || '')
+  hudValue.value = String(value || '')
+  hudVisible.value = true
+  if (hudTimer) clearTimeout(hudTimer)
+  hudTimer = setTimeout(() => {
+    hudVisible.value = false
+    hudTimer = 0
+  }, 900)
+}
 function onVal(key, val) {
   emit(`update:${key}`, Number(val))
+  if (key === 'threshold') showLocalHud('Threshold', `${thresholdDb.value} dB`)
+  else if (key === 'makeup') showLocalHud('Makeup Gain', `${makeupDb.value} dB`)
+  else if (key === 'attack') showLocalHud('Attack', attackMsStr.value)
+  else if (key === 'release') showLocalHud('Release', releaseMsStr.value)
 }
 function onPanelClick() {
   emit('panelClick')
@@ -76,15 +96,13 @@ function onRatioSelect(index) {
   const i = Math.max(0, Math.min(n - 1, Number(index)))
   const quantized = Math.round((i / (n - 1)) * 127)
   onVal('ratio', quantized)
-  try {
-    window.dispatchEvent(new CustomEvent('harmonix:valueHud', { detail: { label: 'Ratio', value: ratioSteps[i] } }))
-  } catch {}
+  showLocalHud('Ratio', ratioSteps[i])
 }
 </script>
 
 <template>
   <div
-    class="rounded-2xl p-4 md:p-6 w-full max-w-xl mx-auto compressor-wrap"
+    class="rounded-2xl p-4 md:p-6 w-full max-w-xl mx-auto compressor-wrap relative"
     :style="{
       '--channel-color': color,
       '--channel-color-glow': color,
@@ -92,6 +110,7 @@ function onRatioSelect(index) {
     }"
     @click="onPanelClick"
   >
+    <HudOverlay :visible="hudVisible" :label="hudLabel" :value="hudValue" :top="30" :fixed="false" :z="80" />
     <div class="mb-4 flex items-center justify-between">
       <div class="px-3 py-1 rounded-full text-[10px] font-semibold tracking-widest uppercase comp-title-label">
         {{ title }}
@@ -107,49 +126,59 @@ function onRatioSelect(index) {
         ✕
       </button>
     </div>
-    <div class="grid grid-cols-3 gap-6">
+    <div class="mb-6 flex items-center justify-center gap-2">
+      <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Ratio</span>
+      <div class="flex items-center justify-center gap-2">
+        <label
+          v-for="(lbl, i) in ratioSteps"
+          :key="lbl"
+          class="inline-flex items-center gap-1 px-2 py-1 rounded-md border text-[10px] font-semibold cursor-pointer"
+          :class="i === ratioIndexFromValue(values.ratio) ? 'bg-slate-200 border-slate-400 text-slate-900' : 'bg-slate-800/60 border-slate-700 text-slate-300'"
+        >
+          <input
+            type="radio"
+            :name="ratioGroupName"
+            :value="i"
+            class="sr-only"
+            :checked="i === ratioIndexFromValue(values.ratio)"
+            @change="onRatioSelect(i)"
+          />
+          <span>{{ lbl }}</span>
+        </label>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-6">
       <div class="flex flex-col items-center gap-3">
         <MixerKnob
           :value="values.threshold"
           :size="knobSize"
           :hud-label="'Threshold'"
           :hud-value="thresholdDb + ' dB'"
+          :hud-enabled="false"
           @input="v => onVal('threshold', v)"
         />
         <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Threshold · {{ thresholdDb }} dB</span>
       </div>
       <div class="flex flex-col items-center gap-3">
-        <MixerKnob :value="values.attack" :size="knobSize" :hud-label="'Attack'" :hud-value="attackMsStr" @input="v => onVal('attack', v)" />
-        <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Attack</span>
-      </div>
-      <div class="flex flex-col items-center gap-3">
-        <MixerKnob :value="values.release" :size="knobSize" :hud-label="'Release'" :hud-value="releaseMsStr" @input="v => onVal('release', v)" />
-        <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Release</span>
-      </div>
-      <div class="flex flex-col items-center gap-3">
-        <MixerKnob :value="values.makeup" :size="knobSize" :hud-label="'Makeup Gain'" :hud-value="makeupDb + ' dB'" @input="v => onVal('makeup', v)" />
+        <MixerKnob
+          :value="values.makeup"
+          :size="knobSize"
+          :hud-label="'Makeup Gain'"
+          :hud-value="makeupDb + ' dB'"
+          :highlight-from-center="true"
+          :reset-value="64"
+          :hud-enabled="false"
+          @input="v => onVal('makeup', v)"
+        />
         <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Makeup Gain</span>
       </div>
       <div class="flex flex-col items-center gap-3">
-        <div class="flex items-center justify-center gap-2">
-          <label
-            v-for="(lbl, i) in ratioSteps"
-            :key="lbl"
-            class="inline-flex items-center gap-1 px-2 py-1 rounded-md border text-[10px] font-semibold cursor-pointer"
-            :class="i === ratioIndexFromValue(values.ratio) ? 'bg-slate-200 border-slate-400 text-slate-900' : 'bg-slate-800/60 border-slate-700 text-slate-300'"
-          >
-            <input
-              type="radio"
-              :name="ratioGroupName"
-              :value="i"
-              class="sr-only"
-              :checked="i === ratioIndexFromValue(values.ratio)"
-              @change="onRatioSelect(i)"
-            />
-            <span>{{ lbl }}</span>
-          </label>
-        </div>
-        <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Ratio</span>
+        <MixerKnob :value="values.attack" :size="knobSize" :hud-label="'Attack'" :hud-value="attackMsStr" :invert-ticks="true" :hud-enabled="false" @input="v => onVal('attack', v)" />
+        <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Attack</span>
+      </div>
+      <div class="flex flex-col items-center gap-3">
+        <MixerKnob :value="values.release" :size="knobSize" :hud-label="'Release'" :hud-value="releaseMsStr" :invert-ticks="true" :hud-enabled="false" @input="v => onVal('release', v)" />
+        <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Release</span>
       </div>
     </div>
   </div>
