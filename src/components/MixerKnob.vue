@@ -2,7 +2,7 @@
 import { ref, onUnmounted } from 'vue'
 
 const props = defineProps({
-  value: { type: Number, default: 64 },
+  value: { type: Number, default: 0 },
   min: { type: Number, default: 0 },
   max: { type: Number, default: 127 },
   size: { type: Number, default: 64 },
