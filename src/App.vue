@@ -31,6 +31,7 @@ const outputId = ref('')
 const channel = ref(0)
 const selectedChannelIndex = ref(0)
 const showToolbar = ref(true)
+const toolbarTab = ref('Faders')
 
 // Smooth incoming CC → UI updates (prevents jitter when DAW streams CC)
 let incomingRaf = 0
@@ -465,11 +466,45 @@ function deletePreset(name) {
           </div>
         </div>
         <div v-show="showToolbar" class="border-b border-slate-800 bg-slate-900/80 backdrop-blur px-6 py-3 flex items-center gap-4">
+          <div class="inline-flex rounded-lg overflow-hidden border border-slate-700">
+            <button
+              type="button"
+              class="px-3 py-1.5 text-[11px] tracking-wide transition-colors touch-manipulation border-r border-slate-700"
+              :class="toolbarTab === 'Faders' ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/60' : 'bg-slate-800 text-slate-200 hover:border-slate-600'"
+              @click="toolbarTab = 'Faders'"
+            >
+              Faders
+            </button>
+            <button
+              type="button"
+              class="px-3 py-1.5 text-[11px] tracking-wide transition-colors touch-manipulation border-r border-slate-700"
+              :class="toolbarTab === 'Processing' ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/60' : 'bg-slate-800 text-slate-200 hover:border-slate-600'"
+              @click="toolbarTab = 'Processing'"
+            >
+              Processing
+            </button>
+            <button
+              type="button"
+              class="px-3 py-1.5 text-[11px] tracking-wide transition-colors touch-manipulation border-r border-slate-700"
+              :class="toolbarTab === 'Effects' ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/60' : 'bg-slate-800 text-slate-200 hover:border-slate-600'"
+              @click="toolbarTab = 'Effects'"
+            >
+              Effects
+            </button>
+            <button
+              type="button"
+              class="px-3 py-1.5 text-[11px] tracking-wide transition-colors touch-manipulation"
+              :class="toolbarTab === 'Sends' ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/60' : 'bg-slate-800 text-slate-200 hover:border-slate-600'"
+              @click="toolbarTab = 'Sends'"
+            >
+              Sends
+            </button>
+          </div>
           <button
             type="button"
             class="p-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 transition-colors hover:border-slate-500 flex items-center gap-2"
-            title="Customize track"
-            aria-label="Customize track"
+            title="Config"
+            aria-label="Open config"
             @click="channelRefs[selectedChannelIndex]?.openSettings()"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -483,13 +518,11 @@ function deletePreset(name) {
               <circle cx="8" cy="12" r="2" />
               <circle cx="16" cy="20" r="2" />
             </svg>
-            <span class="text-[11px] font-semibold uppercase tracking-wide">Customize</span>
+            <span class="text-[11px] font-semibold uppercase tracking-wide">Config</span>
           </button>
         </div>
         <div class="flex-1 overflow-x-auto overflow-y-hidden">
-          <div
-            class="h-full flex gap-4 px-6 py-6 pb-16 min-w-max bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"
-          >
+          <div v-if="toolbarTab === 'Faders'" class="h-full flex gap-4 px-6 py-6 pb-16 min-w-max bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
             <MixerChannel
               v-for="(ch, index) in mixerChannels"
               :key="ch.id"
@@ -523,6 +556,73 @@ function deletePreset(name) {
                 }
               "
             />
+          </div>
+          <div v-else-if="toolbarTab === 'Processing'" class="h-full px-6 py-6 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"></div>
+          <div v-else-if="toolbarTab === 'Effects'" class="h-full px-6 py-6 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"></div>
+          <div v-else-if="toolbarTab === 'Sends'" class="h-full px-6 py-6 min-w-max bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+            <div class="flex gap-4">
+              <div
+                v-for="(ch, index) in mixerChannels"
+                :key="ch.id"
+                class="w-28 sm:w-32 h-[calc(100dvh-16rem)] flex flex-col items-center border border-slate-800/60 rounded-2xl bg-slate-900/50"
+              >
+                <div class="w-full px-3 py-2 text-[10px] font-semibold tracking-widest uppercase text-slate-200 text-center truncate">
+                  {{ channelNames[index] }}
+                </div>
+                <div class="flex-1 w-full flex items-end justify-center gap-3 pb-4">
+                  <div class="relative h-full w-10 sm:w-12 flex items-center justify-center">
+                    <input
+                      type="range"
+                      min="0"
+                      max="127"
+                      :value="channelValues[index].knobs[1]"
+                      class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[clamp(7rem,30vh,18rem)] sm:w-[clamp(8rem,36vh,20rem)] md:w-[clamp(9rem,40vh,22rem)] -rotate-90"
+                      style="height: 10px"
+                      @input="sendCC(60 + index, ($event.target && $event.target.value) || 0)"
+                    />
+                  </div>
+                  <div class="relative h-full w-10 sm:w-12 flex items-center justify-center">
+                    <input
+                      type="range"
+                      min="0"
+                      max="127"
+                      :value="channelValues[index].knobs[2]"
+                      class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[clamp(7rem,30vh,18rem)] sm:w-[clamp(8rem,36vh,20rem)] md:w-[clamp(9rem,40vh,22rem)] -rotate-90"
+                      style="height: 10px"
+                      @input="sendCC(90 + index, ($event.target && $event.target.value) || 0)"
+                    />
+                  </div>
+                  <div class="relative h-full w-10 sm:w-12 flex items-center justify-center">
+                    <input
+                      type="range"
+                      min="0"
+                      max="127"
+                      :value="channelValues[index].knobs[3]"
+                      class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[clamp(7rem,30vh,18rem)] sm:w-[clamp(8rem,36vh,20rem)] md:w-[clamp(9rem,40vh,22rem)] -rotate-90"
+                      style="height: 10px"
+                      @input="sendCC(100 + index, ($event.target && $event.target.value) || 0)"
+                    />
+                  </div>
+                  <div class="relative h-full w-10 sm:w-12 flex items-center justify-center">
+                    <input
+                      type="range"
+                      min="0"
+                      max="127"
+                      :value="channelValues[index].knobs[4]"
+                      class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[clamp(7rem,30vh,18rem)] sm:w-[clamp(8rem,36vh,20rem)] md:w-[clamp(9rem,40vh,22rem)] -rotate-90"
+                      style="height: 10px"
+                      @input="sendCC(110 + index, ($event.target && $event.target.value) || 0)"
+                    />
+                  </div>
+                </div>
+                <div class="w-full px-2 pb-3 flex items-center justify-center gap-3 text-[10px] text-slate-300">
+                  <span>Pan</span>
+                  <span>Send A</span>
+                  <span>Send B</span>
+                  <span>Send C</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

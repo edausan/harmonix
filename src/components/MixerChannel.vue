@@ -54,6 +54,9 @@ const localName = ref(props.name ?? props.channelConfig.name ?? '')
 const faderBgEl = ref(null)
 const sliderWidthPx = ref('')
 let faderResizeObserver = null
+const wrapperEl = ref(null)
+const knobSize = ref(58)
+let wrapperResizeObserver = null
 
 function updateSliderWidth() {
   const el = faderBgEl.value
@@ -61,11 +64,24 @@ function updateSliderWidth() {
   sliderWidthPx.value = el.clientHeight + 'px'
 }
 
+function updateKnobSize() {
+  const el = wrapperEl.value
+  if (!el) return
+  const h = el.clientHeight
+  const s = Math.max(46, Math.min(72, Math.round(h * 0.065)))
+  knobSize.value = s
+}
+
 onMounted(() => {
   updateSliderWidth()
+  updateKnobSize()
   try {
     faderResizeObserver = new ResizeObserver(() => updateSliderWidth())
     if (faderBgEl.value) faderResizeObserver.observe(faderBgEl.value)
+  } catch {}
+  try {
+    wrapperResizeObserver = new ResizeObserver(() => updateKnobSize())
+    if (wrapperEl.value) wrapperResizeObserver.observe(wrapperEl.value)
   } catch {}
 })
 
@@ -240,6 +256,7 @@ function formatDb(value) {
 <template>
   <div
     class="channel-flip-wrapper w-28 sm:w-32 h-[calc(100dvh-12rem)] sm:h-[calc(100dvh-14rem)] md:h-[calc(100dvh-16rem)]"
+    ref="wrapperEl"
     :style="{
       '--channel-color': color,
       '--channel-color-glow': color + '40',
@@ -330,7 +347,7 @@ function formatDb(value) {
           >
             <MixerKnob
               :value="values?.knobs?.[index] ?? 64"
-              :size="58"
+              :size="knobSize"
               :mode="k.label === 'Pan' ? 'pan' : 'default'"
               @input="val => onKnobInput(index, k.cc, val)"
             />
