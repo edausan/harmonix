@@ -48,7 +48,7 @@ const DEFAULT_CHANNEL_NAMES = [
   "CH 10",
 ]
 
-// 10 mixer channels, each with 1 fader + 3 knobs
+// 10 mixer channels, each with 1 fader + 5 knobs
 const mixerChannels = Array.from({ length: 10 }, (_, i) => {
   const index = i + 1
   const base = 20 + i // faders: 20–29
@@ -59,7 +59,9 @@ const mixerChannels = Array.from({ length: 10 }, (_, i) => {
     knobs: [
       { label: 'Gain', cc: 40 + i },
       { label: 'Pan', cc: 60 + i },
-      { label: 'Send', cc: 80 + i }
+      { label: 'Send A', cc: 90 + i },
+      { label: 'Send B', cc: 100 + i },
+      { label: 'Send C', cc: 110 + i }
     ]
   }
 })
@@ -87,7 +89,7 @@ function getFaderCC(index) {
 const channelValues = ref(
   mixerChannels.map(() => ({
     fader: 100,
-    knobs: [64, 64, 64]
+    knobs: [64, 64, 64, 64, 64]
   }))
 )
 
@@ -143,10 +145,24 @@ function applyCCToState(cc, value) {
     return true
   }
 
-  // Send knobs: CC 80–89 (index 2)
-  if (cc >= 80 && cc < 80 + numChannels) {
-    const index = cc - 80
+  // Send A knobs: CC 90–99 (index 2)
+  if (cc >= 90 && cc < 90 + numChannels) {
+    const index = cc - 90
     if (channelValues.value[index]) channelValues.value[index].knobs[2] = value
+    return true
+  }
+
+  // Send B knobs: CC 100–109 (index 3)
+  if (cc >= 100 && cc < 100 + numChannels) {
+    const index = cc - 100
+    if (channelValues.value[index]) channelValues.value[index].knobs[3] = value
+    return true
+  }
+
+  // Send C knobs: CC 110–119 (index 4)
+  if (cc >= 110 && cc < 110 + numChannels) {
+    const index = cc - 110
+    if (channelValues.value[index]) channelValues.value[index].knobs[4] = value
     return true
   }
 
@@ -348,8 +364,6 @@ function manualReconnect() {
             />
           </div>
         </div>
-
-        <MixerLegend />
       </div>
     </main>
   </div>

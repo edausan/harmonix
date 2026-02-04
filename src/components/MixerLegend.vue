@@ -16,8 +16,15 @@
     </div>
     <div class="flex items-center gap-2">
       <span class="h-2 w-2 rounded-full bg-violet-400/80"></span>
-      <span>Send: CC 80–89</span>
+      <span>Send A: CC 90–99</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="h-2 w-2 rounded-full bg-fuchsia-400/80"></span>
+      <span>Send B: CC 100–109</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="h-2 w-2 rounded-full bg-indigo-400/80"></span>
+      <span>Send C: CC 110–119</span>
     </div>
   </footer>
 </template>
-

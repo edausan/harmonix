@@ -1,5 +1,6 @@
 <script setup>
 import { ref, watch, computed, onUnmounted } from 'vue'
+import MixerKnob from './MixerKnob.vue'
 
 const props = defineProps({
   channelConfig: {
@@ -39,6 +40,8 @@ const effectiveFaderCC = computed(() =>
 const isEditingName = ref(false)
 const isFlipped = ref(false)
 const settingsOpen = ref(false)
+const isActive = ref(false)
+let activeTimer = 0
 const localName = ref(props.name || props.channelConfig.name)
 const localFaderCc = ref(
   props.faderCcOverride != null && Number.isFinite(props.faderCcOverride)
@@ -48,6 +51,18 @@ const localFaderCc = ref(
 
 function toggleFlip() {
   isFlipped.value = !isFlipped.value
+}
+
+function activateChannel() {
+  isActive.value = true
+  if (activeTimer) {
+    clearTimeout(activeTimer)
+    activeTimer = 0
+  }
+  activeTimer = setTimeout(() => {
+    isActive.value = false
+    activeTimer = 0
+  }, 600)
 }
 
 watch(
@@ -64,6 +79,13 @@ watch(
   newVal => {
     localFaderCc.value =
       newVal != null && Number.isFinite(newVal) ? String(newVal) : ''
+  }
+)
+
+watch(
+  () => [props.values?.fader, ...(props.values?.knobs || [])],
+  () => {
+    activateChannel()
   }
 )
 
@@ -106,8 +128,11 @@ function onSettingsKeydown(e) {
   if (e.key === 'Escape') closeSettings()
 }
 
-function onKnobInput(index, cc, event) {
-  const raw = event.target && event.target.value
+function onKnobInput(index, cc, valueOrEvent) {
+  const raw =
+    typeof valueOrEvent === 'number'
+      ? valueOrEvent
+      : valueOrEvent && valueOrEvent.target && valueOrEvent.target.value
   const value = Number(raw)
   if (Number.isNaN(value)) return
 
@@ -115,6 +140,7 @@ function onKnobInput(index, cc, event) {
   if (props.sendCc) {
     props.sendCc(cc, value)
   }
+  activateChannel()
 }
 
 function onFaderInput(event) {
@@ -126,6 +152,7 @@ function onFaderInput(event) {
   if (props.sendCc) {
     props.sendCc(effectiveFaderCC.value, value)
   }
+  activateChannel()
 }
 
 function startEditName() {
@@ -174,7 +201,7 @@ function formatDb(value) {
   >
     <div
       class="channel-flip-inner rounded-2xl border shadow-lg shadow-black/40 channel-border channel-bg-inner"
-      :class="{ 'channel-flipped': isFlipped }"
+      :class="{ 'channel-flipped': isFlipped, 'channel-active': isActive }"
     >
       <!-- Front: label + fader + settings + flip -->
       <div
@@ -262,27 +289,22 @@ function formatDb(value) {
           <div class="px-3 py-0.5 rounded-full bg-slate-800/80 border border-slate-700 text-[10px] font-semibold tracking-widest uppercase text-slate-300 text-center w-full truncate">
             {{ name || channelConfig.name }}
           </div>
-          <div class="text-[9px] text-slate-500 uppercase tracking-wide">
-            Knobs
-          </div>
         </div>
 
-        <div class="flex-1 flex flex-col items-center justify-center gap-3 w-full min-h-0">
+        <div class="flex-1 flex flex-col items-center justify-center gap-6 w-full min-h-0">
           <div
             v-for="(k, index) in channelConfig.knobs"
             :key="k.cc"
-            class="flex flex-col items-center gap-1 w-full"
+            class="flex flex-col items-center gap-3 w-full"
           >
-            <input
-              type="range"
-              min="0"
-              max="127"
+            <MixerKnob
               :value="values?.knobs?.[index] ?? 64"
-              class="mixer-knob w-full"
-              @input="onKnobInput(index, k.cc, $event)"
+              :size="58"
+              :mode="k.label === 'Pan' ? 'pan' : 'default'"
+              @input="val => onKnobInput(index, k.cc, val)"
             />
             <span class="text-[9px] font-medium text-slate-300 uppercase tracking-wide">
-              {{ k.label }}
+              {{ k.label }} <span class="text-slate-500 font-normal">#{{ k.cc }}</span>
             </span>
           </div>
         </div>
@@ -429,6 +451,35 @@ function formatDb(value) {
   border-color: var(--channel-color);
 }
 
+.channel-flip-inner::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: inherit;
+  background: radial-gradient(circle, var(--channel-color-glow), transparent 60%);
+  opacity: 0;
+  filter: blur(10px);
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.channel-flip-inner.channel-active::before {
+  opacity: 1;
+  animation: channelPulse 700ms ease-out;
+}
+
+@keyframes channelPulse {
+  0% { opacity: 0.2; filter: blur(12px); }
+  50% { opacity: 1; filter: blur(16px); }
+  100% { opacity: 0.5; filter: blur(12px); }
+}
+
+.channel-active.channel-border,
+.channel-active .channel-border {
+  border-color: color-mix(in srgb, var(--channel-color) 85%, rgb(71 85 105 / 30%));
+  box-shadow: 0 0 0 1px var(--channel-color-glow);
+}
+
 .mixer-fader {
   -webkit-appearance: none;
   appearance: none;
@@ -476,36 +527,4 @@ function formatDb(value) {
   background: linear-gradient(to right, rgb(15 23 42), rgb(30 41 59));
 }
 
-.mixer-knob {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 22px;
-  border-radius: 9999px;
-  background: linear-gradient(to right, rgb(15 23 42), rgb(30 64 175));
-  touch-action: none;
-}
-
-.mixer-knob::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 20px;
-  height: 20px;
-  border-radius: 9999px;
-  background: var(--channel-color);
-  box-shadow:
-    0 0 0 2px rgb(15 23 42),
-    0 0 0 4px var(--channel-color-glow);
-}
-
-.mixer-knob::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
-  border-radius: 9999px;
-  background: var(--channel-color);
-  box-shadow:
-    0 0 0 2px rgb(15 23 42),
-    0 0 0 4px var(--channel-color-glow);
-}
 </style>
-
