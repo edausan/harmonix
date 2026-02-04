@@ -728,6 +728,13 @@ function deletePreset(name) {
                   :color="'#c0c0c0'"
                   :label-color="'#273444'"
                   :knob-size="58"
+                  :show-remove="true"
+                  @remove="
+                    () => {
+                      const idx = processingPlugins.findIndex(p => p.id === plugin.id)
+                      if (idx >= 0) processingPlugins.splice(idx, 1)
+                    }
+                  "
                   @update:threshold="v => (plugin.values.threshold = v)"
                   @update:attack="v => (plugin.values.attack = v)"
                   @update:release="v => (plugin.values.release = v)"
@@ -735,20 +742,6 @@ function deletePreset(name) {
                   @update:makeup="v => (plugin.values.makeup = v)"
                   @update:ratio="v => (plugin.values.ratio = v)"
                 />
-                <button
-                  type="button"
-                  class="absolute top-3 right-3 px-2 py-1 rounded-md bg-slate-800/80 border border-slate-700 text-slate-300 text-[11px] hover:border-red-400/70 hover:text-red-300 transition-colors"
-                  title="Remove compressor"
-                  aria-label="Remove compressor"
-                  @click="
-                    () => {
-                      const idx = processingPlugins.findIndex(p => p.id === plugin.id)
-                      if (idx >= 0) processingPlugins.splice(idx, 1)
-                    }
-                  "
-                >
-                  ✕
-                </button>
               </div>
             </div>
           </div>

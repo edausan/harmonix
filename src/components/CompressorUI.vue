@@ -1,5 +1,6 @@
 <script setup>
 import MixerKnob from './MixerKnob.vue'
+import { computed } from 'vue'
 const props = defineProps({
   values: {
     type: Object,
@@ -15,7 +16,8 @@ const props = defineProps({
   color: { type: String, default: '#254f93' },
   knobSize: { type: Number, default: 64 },
   title: { type: String, default: 'Compressor' },
-  labelColor: { type: String, default: '#273444' }
+  labelColor: { type: String, default: '#273444' },
+  showRemove: { type: Boolean, default: false }
 })
 const emit = defineEmits([
   'update:threshold',
@@ -24,16 +26,24 @@ const emit = defineEmits([
   'update:knee',
   'update:makeup',
   'update:ratio',
-  'panelClick'
+  'panelClick',
+  'remove'
 ])
 function onVal(key, val) {
   emit(`update:${key}`, Number(val))
 }
-function onPanelClick(e) {
-  if (e && e.currentTarget === e.target) {
-    emit('panelClick')
-  }
+function onPanelClick() {
+  emit('panelClick')
 }
+function onRemoveClick(e) {
+  e.stopPropagation()
+  emit('remove')
+}
+const thresholdDb = computed(() => {
+  const v = Number(props.values?.threshold ?? 0)
+  const db = -60 + (v / 127) * 60
+  return Math.round(db)
+})
 </script>
 
 <template>
@@ -50,11 +60,21 @@ function onPanelClick(e) {
       <div class="px-3 py-1 rounded-full text-[10px] font-semibold tracking-widest uppercase comp-title-label">
         {{ title }}
       </div>
+      <button
+        v-if="showRemove"
+        type="button"
+        class="px-2 py-1 rounded-md text-slate-700 text-[11px] hover:text-slate-900 transition-colors bg-transparent"
+        title="Remove compressor"
+        aria-label="Remove compressor"
+        @click="onRemoveClick"
+      >
+        ✕
+      </button>
     </div>
     <div class="grid grid-cols-3 gap-6">
       <div class="flex flex-col items-center gap-3">
         <MixerKnob :value="values.threshold" :size="knobSize" @input="v => onVal('threshold', v)" />
-        <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Threshold</span>
+        <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Threshold · {{ thresholdDb }} dB</span>
       </div>
       <div class="flex flex-col items-center gap-3">
         <MixerKnob :value="values.attack" :size="knobSize" @input="v => onVal('attack', v)" />
