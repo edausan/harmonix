@@ -1,6 +1,9 @@
 <script setup>
 import MixerKnob from './MixerKnob.vue'
-import { computed } from 'vue'
+import MixKnob from './knobs/MixKnob.vue'
+import LowCutKnob from './knobs/LowCutKnob.vue'
+import HighCutKnob from './knobs/HighCutKnob.vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { ref } from 'vue'
 import HudOverlay from './HudOverlay.vue'
 const props = defineProps({
@@ -19,6 +22,7 @@ const props = defineProps({
   labelColor: { type: String, default: '#ffffff' },
   showRemove: { type: Boolean, default: false },
   layout: { type: String, default: 'Basic' },
+  enabled: { type: Boolean, default: true },
   ccMix: { type: Number, default: undefined },
   ccDecay: { type: Number, default: undefined },
   ccLowCut: { type: Number, default: undefined },
@@ -30,6 +34,7 @@ const emit = defineEmits([
   'update:lowCut',
   'update:highCut',
   'update:layout',
+  'update:enabled',
   'panelClick',
   'remove'
 ])
@@ -62,6 +67,7 @@ function onRemoveClick(e) {
   emit('remove')
 }
 const layoutOpen = ref(false)
+const layoutRef = ref(null)
 function toggleLayout(e) {
   e && e.stopPropagation && e.stopPropagation()
   layoutOpen.value = !layoutOpen.value
@@ -70,7 +76,7 @@ function selectLayout(val) {
   layoutOpen.value = false
   emit('update:layout', String(val))
 }
-const layoutOptions = ['Basic', 'Side-chain', 'Basic EQ']
+const layoutOptions = ['Basic', 'Side-chain', 'Basic + Filters']
 const mixPct = computed(() => {
   const v = Number(props.values?.mix ?? 0)
   const pct = (v / 127) * 100
@@ -97,11 +103,23 @@ const highCutHz = computed(() => {
   const hz = 100 + (v / 127) * (20000 - 100)
   return Math.round(hz)
 })
+function onGlobalClick(e) {
+  if (!layoutOpen.value) return
+  const el = layoutRef.value
+  if (el && !el.contains(e.target)) layoutOpen.value = false
+}
+onMounted(() => {
+  window.addEventListener('click', onGlobalClick)
+})
+onUnmounted(() => {
+  window.removeEventListener('click', onGlobalClick)
+})
 </script>
 
 <template>
   <div
     class="rounded-2xl p-4 md:p-6 w-full min-w-0 max-w-none h-[400px] mx-auto reverb-wrap relative flex flex-col"
+    :class="(!enabled ? 'plugin-disabled' : '')"
     :style="{
       '--channel-color': '#ffffff',
       '--channel-color-glow': '#ffffff',
@@ -111,7 +129,19 @@ const highCutHz = computed(() => {
   >
     <HudOverlay :visible="hudVisible" :label="hudLabel" :value="hudValue" :top="16" :fixed="false" :z="80" />
     <div class="mb-4 flex items-center justify-between">
-      <div class="relative">
+      <div class="relative flex items-center gap-2" ref="layoutRef">
+        <button
+          type="button"
+          class="p-2 bg-transparent border-0"
+          title="Enable"
+          aria-label="Enable"
+          @click.stop="emit('update:enabled', !enabled)"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" :stroke="enabled ? '#22c55e' : '#cbd5e1'" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="6" x2="12" y2="12"></line>
+          </svg>
+        </button>
         <button
           type="button"
           class="px-3 py-1 rounded-full text-[10px] font-semibold tracking-widest uppercase reverb-title-label"
@@ -157,14 +187,7 @@ const highCutHz = computed(() => {
       <div class="grid grid-cols-2 gap-6 w-full place-items-center">
       <div class="flex flex-col items-center">
         <div class="flex flex-col items-center gap-3">
-          <MixerKnob
-            :value="values.mix"
-            :size="knobSize"
-            :hud-label="'Mix'"
-            :hud-value="mixPct + '%'"
-            :hud-enabled="false"
-            @input="v => onVal('mix', v)"
-          />
+          <MixKnob :value="values.mix" :size="knobSize" :hud-enabled="false" @input="v => onVal('mix', v)" />
           <span class="text-[10px] font-medium uppercase tracking-wide reverb-label">Mix · {{ mixPct }}%</span>
         </div>
         <span v-if="ccMix != null" class="mt-0.5 text-[9px] font-semibold uppercase tracking-wide reverb-label opacity-70">CC {{ ccMix }}</span>
@@ -185,28 +208,14 @@ const highCutHz = computed(() => {
       </div>
       <div class="flex flex-col items-center">
         <div class="flex flex-col items-center gap-3">
-          <MixerKnob
-            :value="values.lowCut"
-            :size="knobSize"
-            :hud-label="'Low Cut'"
-            :hud-value="lowCutHz + ' Hz'"
-            :hud-enabled="false"
-            @input="v => onVal('lowCut', v)"
-          />
+          <LowCutKnob :value="values.lowCut" :size="knobSize" :hud-enabled="false" @input="v => onVal('lowCut', v)" />
           <span class="text-[10px] font-medium uppercase tracking-wide reverb-label">Low Cut</span>
         </div>
         <span v-if="ccLowCut != null" class="mt-0.5 text-[9px] font-semibold uppercase tracking-wide reverb-label opacity-70">CC {{ ccLowCut }}</span>
       </div>
       <div class="flex flex-col items-center">
         <div class="flex flex-col items-center gap-3">
-          <MixerKnob
-            :value="values.highCut"
-            :size="knobSize"
-            :hud-label="'High Cut'"
-            :hud-value="highCutHz + ' Hz'"
-            :hud-enabled="false"
-            @input="v => onVal('highCut', v)"
-          />
+          <HighCutKnob :value="values.highCut" :size="knobSize" :hud-enabled="false" @input="v => onVal('highCut', v)" />
           <span class="text-[10px] font-medium uppercase tracking-wide reverb-label">High Cut</span>
         </div>
         <span v-if="ccHighCut != null" class="mt-0.5 text-[9px] font-semibold uppercase tracking-wide reverb-label opacity-70">CC {{ ccHighCut }}</span>
@@ -232,5 +241,9 @@ const highCutHz = computed(() => {
 }
 .reverb-label {
   color: var(--label-color);
+}
+.plugin-disabled {
+  filter: saturate(0);
+  opacity: 0.7;
 }
 </style>

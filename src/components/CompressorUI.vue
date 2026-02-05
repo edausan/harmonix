@@ -1,6 +1,8 @@
 <script setup>
 import MixerKnob from './MixerKnob.vue'
-import { computed } from 'vue'
+import LowCutKnob from './knobs/LowCutKnob.vue'
+import HighCutKnob from './knobs/HighCutKnob.vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { ref } from 'vue'
 import HudOverlay from './HudOverlay.vue'
 const props = defineProps({
@@ -23,6 +25,7 @@ const props = defineProps({
   labelColor: { type: String, default: '#273444' },
   showRemove: { type: Boolean, default: false },
   layout: { type: String, default: 'Basic' },
+  enabled: { type: Boolean, default: true },
   ccThreshold: { type: Number, default: undefined },
   ccMakeup: { type: Number, default: undefined },
   ccAttack: { type: Number, default: undefined },
@@ -40,6 +43,7 @@ const emit = defineEmits([
   'update:lowCut',
   'update:highCut',
   'update:layout',
+  'update:enabled',
   'panelClick',
   'remove'
 ])
@@ -75,6 +79,7 @@ function onRemoveClick(e) {
 }
 const layoutOpen = ref(false)
 const drawerOpen = ref(false)
+const layoutRef = ref(null)
 function toggleLayout(e) {
   e && e.stopPropagation && e.stopPropagation()
   layoutOpen.value = !layoutOpen.value
@@ -83,7 +88,7 @@ function selectLayout(val) {
   layoutOpen.value = false
   emit('update:layout', String(val))
 }
-const layoutOptions = ['Basic', 'Side-chain', 'Basic EQ']
+const layoutOptions = ['Basic', 'Side-chain', 'Basic + Filters']
 const thresholdDb = computed(() => {
   const v = Number(props.values?.threshold ?? 0)
   const db = -60 + (v / 127) * 60
@@ -134,21 +139,50 @@ const highCutHz = computed(() => {
   const hz = 100 + (v / 127) * (20000 - 100)
   return Math.round(hz)
 })
+const effectiveColor = computed(() => {
+  if (props.layout === 'Basic') return '#06b6d4'
+  if (props.layout === 'Side-chain') return '#10B981'
+  return props.color
+})
+function onGlobalClick(e) {
+  if (!layoutOpen.value) return
+  const el = layoutRef.value
+  if (el && !el.contains(e.target)) layoutOpen.value = false
+}
+onMounted(() => {
+  window.addEventListener('click', onGlobalClick)
+})
+onUnmounted(() => {
+  window.removeEventListener('click', onGlobalClick)
+})
 </script>
 
 <template>
   <div
-    class="rounded-2xl p-4 md:p-6 w-full min-w-0 max-w-none h-[400px] mx-auto compressor-wrap relative flex flex-col"
+    class="rounded-2xl p-4 md:p-6 w-full min-w-0 max-w-none h-[400px] mx-auto compressor-wrap relative flex flex-col overflow-hidden"
+    :class="[((layout === 'Basic + Filters' || layout === 'Basic EQ') ? 'eq-dark' : ''), (!enabled ? 'plugin-disabled' : '')]"
     :style="{
-      '--channel-color': color,
-      '--channel-color-glow': color,
+      '--channel-color': effectiveColor,
+      '--channel-color-glow': effectiveColor,
       '--label-color': labelColor
     }"
     @click="onPanelClick"
   >
     <HudOverlay :visible="hudVisible" :label="hudLabel" :value="hudValue" :top="16" :fixed="false" :z="80" />
     <div class="mb-4 flex items-center justify-between">
-      <div class="relative">
+      <div class="relative flex items-center gap-2" ref="layoutRef">
+        <button
+          type="button"
+          class="p-2 bg-transparent border-0"
+          title="Enable"
+          aria-label="Enable"
+          @click.stop="emit('update:enabled', !enabled)"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" :stroke="enabled ? '#22c55e' : '#64748b'" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="6" x2="12" y2="12"></line>
+          </svg>
+        </button>
         <button
           type="button"
           class="px-3 py-1 rounded-full text-[10px] font-semibold tracking-widest uppercase comp-title-label"
@@ -192,20 +226,19 @@ const highCutHz = computed(() => {
     </div>
     <div class="absolute left-1/2 -translate-x-1/2 bottom-3 z-10">
       <button
-        v-if="layout === 'Basic EQ'"
+        v-if="layout === 'Basic + Filters' || layout === 'Basic EQ'"
         type="button"
-        class="p-2 rounded-md bg-slate-800/50 border border-slate-700 text-slate-300 hover:bg-slate-700/60"
+        class="p-1 bg-transparent border-0 text-slate-900 hover:text-black"
         title="EQ"
         aria-label="EQ"
         @click.stop="drawerOpen = !drawerOpen"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 12h18"></path>
-          <path d="M12 5v14"></path>
+          <polyline points="18 15 12 9 6 15" />
         </svg>
       </button>
     </div>
-    <div class="mb-6 flex items-center justify-center gap-2">
+    <div class="mb-6 flex items-center justify-center gap-2" :class="drawerOpen ? 'pointer-events-none blur-sm' : ''">
       <div class="flex flex-col items-center">
         <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Ratio</span>
         <span v-if="ccRatio != null" class="text-[9px] font-semibold uppercase tracking-wide comp-label opacity-70">CC {{ ccRatio }}</span>
@@ -229,7 +262,7 @@ const highCutHz = computed(() => {
         </label>
       </div>
     </div>
-    <div class="flex-1 flex items-center justify-center">
+    <div class="flex-1 flex items-center justify-center" :class="drawerOpen ? 'pointer-events-none blur-sm' : ''">
       <div class="grid grid-cols-2 gap-6 w-full place-items-center">
       <div class="flex flex-col items-center">
         <div class="flex flex-col items-center gap-3">
@@ -277,45 +310,51 @@ const highCutHz = computed(() => {
       </div>
       </div>
     </div>
-    <div v-show="drawerOpen && layout === 'Basic EQ'" class="absolute inset-0 z-20" @click.self="drawerOpen = false">
-      <div
-        class="absolute left-0 right-0 bottom-0 border-t border-slate-700 bg-slate-900/95 backdrop-blur-sm"
-        style="height: 75%"
-        @click.stop
+    <div v-if="layout === 'Basic + Filters' || layout === 'Basic EQ'" class="absolute inset-0 z-50" :class="drawerOpen ? '' : 'pointer-events-none'">
+      <Transition
+        enter-active-class="transition duration-250 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
       >
-        <div class="h-full flex flex-col items-center justify-center gap-6 px-4">
-          <div class="grid grid-cols-2 gap-6 w-full place-items-center">
-            <div class="flex flex-col items-center">
-              <div class="flex flex-col items-center gap-3">
-                <MixerKnob
-                  :value="values.lowCut"
-                  :size="knobSize"
-                  :hud-label="'Low Cut'"
-                  :hud-value="lowCutHz + ' Hz'"
-                  :hud-enabled="false"
-                  @input="v => onVal('lowCut', v)"
-                />
-                <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Low Cut</span>
+        <div v-show="drawerOpen" class="absolute inset-0" @click="drawerOpen = false"></div>
+      </Transition>
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="translate-y-full opacity-0"
+        enter-to-class="translate-y-0 opacity-100"
+        leave-active-class="transition duration-250 ease-in"
+        leave-from-class="translate-y-0 opacity-100"
+        leave-to-class="translate-y-full opacity-0"
+      >
+        <div
+          v-show="drawerOpen"
+          class="absolute left-0 right-0 bottom-0 border-t border-slate-300 bg-white/70 backdrop-blur-md z-50"
+          style="height: 50%"
+          @click.stop
+        >
+          <div class="h-full flex flex-col items-center justify-center gap-6 px-4">
+            <div class="grid grid-cols-2 gap-6 w-full place-items-center">
+              <div class="flex flex-col items-center">
+                <div class="flex flex-col items-center gap-3">
+                  <LowCutKnob :value="values.lowCut" :size="knobSize" :hud-enabled="false" @input="v => onVal('lowCut', v)" />
+                  <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Low Cut</span>
+                </div>
+                <span v-if="ccLowCut != null" class="mt-0.5 text-[9px] font-semibold uppercase tracking-wide comp-label opacity-70">CC {{ ccLowCut }}</span>
               </div>
-              <span v-if="ccLowCut != null" class="mt-0.5 text-[9px] font-semibold uppercase tracking-wide comp-label opacity-70">CC {{ ccLowCut }}</span>
-            </div>
-            <div class="flex flex-col items-center">
-              <div class="flex flex-col items-center gap-3">
-                <MixerKnob
-                  :value="values.highCut"
-                  :size="knobSize"
-                  :hud-label="'High Cut'"
-                  :hud-value="highCutHz + ' Hz'"
-                  :hud-enabled="false"
-                  @input="v => onVal('highCut', v)"
-                />
-                <span class="text-[10px] font-medium uppercase tracking-wide comp-label">High Cut</span>
+              <div class="flex flex-col items-center">
+                <div class="flex flex-col items-center gap-3">
+                  <HighCutKnob :value="values.highCut" :size="knobSize" :hud-enabled="false" @input="v => onVal('highCut', v)" />
+                  <span class="text-[10px] font-medium uppercase tracking-wide comp-label">High Cut</span>
+                </div>
+                <span v-if="ccHighCut != null" class="mt-0.5 text-[9px] font-semibold uppercase tracking-wide comp-label opacity-70">CC {{ ccHighCut }}</span>
               </div>
-              <span v-if="ccHighCut != null" class="mt-0.5 text-[9px] font-semibold uppercase tracking-wide comp-label opacity-70">CC {{ ccHighCut }}</span>
             </div>
           </div>
         </div>
-      </div>
+      </Transition>
     </div>
   </div>
 </template>
@@ -338,5 +377,12 @@ const highCutHz = computed(() => {
 }
 .comp-label {
   color: var(--label-color);
+}
+.eq-dark {
+  filter: brightness(0.95);
+}
+.plugin-disabled {
+  filter: saturate(0);
+  opacity: 0.7;
 }
 </style>

@@ -117,40 +117,39 @@ const processingModalCompressors = ref([
   {
     id: 'modal-1',
     values: { threshold: 64, attack: 64, release: 64, knee: 64, makeup: 64, ratio: 64 }
-  },
-  {
-    id: 'modal-2',
-    values: { threshold: 64, attack: 64, release: 64, knee: 64, makeup: 64, ratio: 64 }
   }
 ])
 function toggleFxModal() {
   fxModalOpen.value = !fxModalOpen.value
 }
+const compressorVariantOptions = ['Basic', 'Basic + Filters', 'Side-chain']
 const fxPluginsByChannel = ref(mixerChannels.map(() => []))
 let nextFxId = 1
-function addCompressorFromModal(id) {
+function addCompressorFromModal(id, layout) {
   const comp = processingModalCompressors.value.find(c => c.id === id)
   if (!comp) return
   fxPluginsByChannel.value[selectedChannelIndex.value].push({
     id: nextFxId++,
     type: 'compressor',
     values: { ...comp.values },
-    layout: 'Basic'
+    layout: layout || 'Basic',
+    enabled: true
   })
   fxModalOpen.value = false
 }
 const fxModalReverbs = ref([
-  { id: 'rev-1', values: { mix: 64, decay: 64, lowCut: 64, highCut: 64 } },
-  { id: 'rev-2', values: { mix: 64, decay: 64, lowCut: 64, highCut: 64 } }
+  { id: 'rev-1', values: { mix: 64, decay: 64, lowCut: 64, highCut: 64 } }
 ])
-function addReverbFromModal(id) {
+const reverbVariantOptions = ['Basic', 'Basic + Filters', 'Side-chain']
+function addReverbFromModal(id, layout) {
   const comp = fxModalReverbs.value.find(c => c.id === id)
   if (!comp) return
   fxPluginsByChannel.value[selectedChannelIndex.value].push({
     id: nextFxId++,
     type: 'reverb',
     values: { ...comp.values },
-    layout: 'Basic'
+    layout: layout || 'Basic',
+    enabled: true
   })
   fxModalOpen.value = false
 }
@@ -517,6 +516,7 @@ function savePreset(name) {
       effects: (fxPluginsByChannel.value[i] || []).map(p => ({
         type: p.type,
         layout: p.layout,
+        enabled: p.enabled !== false,
         values: { ...p.values }
       }))
     }))
@@ -603,6 +603,7 @@ function applyPresetData(p) {
       id: nextFxId++,
       type: e.type === 'reverb' ? 'reverb' : 'compressor',
       layout: e.layout || 'Basic',
+      enabled: e.enabled !== false,
       values: { ...(e.values || {}) }
     }))
   }
@@ -783,11 +784,12 @@ function deletePreset(name) {
                 <CompressorUI
                   v-if="plugin.type === 'compressor'"
                   :values="plugin.values"
-                  :color="'#c0c0c0'"
+                  :color="'#FF5A1F'"
                   :label-color="'#273444'"
                   :knob-size="58"
                   :show-remove="true"
                   :layout="plugin.layout"
+                  :enabled="plugin.enabled !== false"
                   :cc-threshold="fxCc('compressor','threshold', selectedChannelIndex, fxIndex)"
                   :cc-makeup="fxCc('compressor','makeup', selectedChannelIndex, fxIndex)"
                   :cc-attack="fxCc('compressor','attack', selectedChannelIndex, fxIndex)"
@@ -803,14 +805,15 @@ function deletePreset(name) {
                     }
                   "
                   @update:layout="v => (plugin.layout = v)"
-                  @update:threshold="v => { plugin.values.threshold = v; sendCC(fxCc('compressor','threshold', selectedChannelIndex, fxIndex), v) }"
-                  @update:attack="v => { plugin.values.attack = v; sendCC(fxCc('compressor','attack', selectedChannelIndex, fxIndex), v) }"
-                  @update:release="v => { plugin.values.release = v; sendCC(fxCc('compressor','release', selectedChannelIndex, fxIndex), v) }"
-                  @update:knee="v => { plugin.values.knee = v; sendCC(fxCc('compressor','knee', selectedChannelIndex, fxIndex), v) }"
-                  @update:makeup="v => { plugin.values.makeup = v; sendCC(fxCc('compressor','makeup', selectedChannelIndex, fxIndex), v) }"
-                  @update:ratio="v => { plugin.values.ratio = v; sendCC(fxCc('compressor','ratio', selectedChannelIndex, fxIndex), v) }"
-                  @update:lowCut="v => { plugin.values.lowCut = v; sendCC(fxCc('compressor','lowCut', selectedChannelIndex, fxIndex), v) }"
-                  @update:highCut="v => { plugin.values.highCut = v; sendCC(fxCc('compressor','highCut', selectedChannelIndex, fxIndex), v) }"
+                  @update:enabled="v => (plugin.enabled = !!v)"
+                  @update:threshold="v => { plugin.values.threshold = v; if (plugin.enabled !== false) sendCC(fxCc('compressor','threshold', selectedChannelIndex, fxIndex), v) }"
+                  @update:attack="v => { plugin.values.attack = v; if (plugin.enabled !== false) sendCC(fxCc('compressor','attack', selectedChannelIndex, fxIndex), v) }"
+                  @update:release="v => { plugin.values.release = v; if (plugin.enabled !== false) sendCC(fxCc('compressor','release', selectedChannelIndex, fxIndex), v) }"
+                  @update:knee="v => { plugin.values.knee = v; if (plugin.enabled !== false) sendCC(fxCc('compressor','knee', selectedChannelIndex, fxIndex), v) }"
+                  @update:makeup="v => { plugin.values.makeup = v; if (plugin.enabled !== false) sendCC(fxCc('compressor','makeup', selectedChannelIndex, fxIndex), v) }"
+                  @update:ratio="v => { plugin.values.ratio = v; if (plugin.enabled !== false) sendCC(fxCc('compressor','ratio', selectedChannelIndex, fxIndex), v) }"
+                  @update:lowCut="v => { plugin.values.lowCut = v; if (plugin.enabled !== false) sendCC(fxCc('compressor','lowCut', selectedChannelIndex, fxIndex), v) }"
+                  @update:highCut="v => { plugin.values.highCut = v; if (plugin.enabled !== false) sendCC(fxCc('compressor','highCut', selectedChannelIndex, fxIndex), v) }"
                 />
                 <ReverbUI
                   v-else-if="plugin.type === 'reverb'"
@@ -820,6 +823,7 @@ function deletePreset(name) {
                   :knob-size="58"
                   :show-remove="true"
                   :layout="plugin.layout"
+                  :enabled="plugin.enabled !== false"
                   :cc-mix="fxCc('reverb','mix', selectedChannelIndex, fxIndex)"
                   :cc-decay="fxCc('reverb','decay', selectedChannelIndex, fxIndex)"
                   :cc-low-cut="fxCc('reverb','lowCut', selectedChannelIndex, fxIndex)"
@@ -832,10 +836,11 @@ function deletePreset(name) {
                     }
                   "
                   @update:layout="v => (plugin.layout = v)"
-                  @update:mix="v => { plugin.values.mix = v; sendCC(fxCc('reverb','mix', selectedChannelIndex, fxIndex), v) }"
-                  @update:decay="v => { plugin.values.decay = v; sendCC(fxCc('reverb','decay', selectedChannelIndex, fxIndex), v) }"
-                  @update:lowCut="v => { plugin.values.lowCut = v; sendCC(fxCc('reverb','lowCut', selectedChannelIndex, fxIndex), v) }"
-                  @update:highCut="v => { plugin.values.highCut = v; sendCC(fxCc('reverb','highCut', selectedChannelIndex, fxIndex), v) }"
+                  @update:enabled="v => (plugin.enabled = !!v)"
+                  @update:mix="v => { plugin.values.mix = v; if (plugin.enabled !== false) sendCC(fxCc('reverb','mix', selectedChannelIndex, fxIndex), v) }"
+                  @update:decay="v => { plugin.values.decay = v; if (plugin.enabled !== false) sendCC(fxCc('reverb','decay', selectedChannelIndex, fxIndex), v) }"
+                  @update:lowCut="v => { plugin.values.lowCut = v; if (plugin.enabled !== false) sendCC(fxCc('reverb','lowCut', selectedChannelIndex, fxIndex), v) }"
+                  @update:highCut="v => { plugin.values.highCut = v; if (plugin.enabled !== false) sendCC(fxCc('reverb','highCut', selectedChannelIndex, fxIndex), v) }"
                 />
               </div>
               <div class="w-full relative min-w-0 h-[400px] flex items-center justify-center">
@@ -1015,44 +1020,52 @@ function deletePreset(name) {
               Close
             </button>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 justify-start gap-4">
-            <div
-              v-for="comp in processingModalCompressors"
-              :key="comp.id"
-              class="relative"
-            >
-              <CompressorUI
-                :values="comp.values"
-                :color="'#c0c0c0'"
-                :label-color="'#273444'"
-                :knob-size="58"
-                title="Compressor"
-                @panelClick="addCompressorFromModal(comp.id)"
-                @update:threshold="v => (comp.values.threshold = v)"
-                @update:attack="v => (comp.values.attack = v)"
-                @update:release="v => (comp.values.release = v)"
-                @update:knee="v => (comp.values.knee = v)"
-                @update:makeup="v => (comp.values.makeup = v)"
-                @update:ratio="v => (comp.values.ratio = v)"
-              />
+          <div class="space-y-8">
+            <div>
+              <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-300 mb-2">Compressor</div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div v-for="variant in compressorVariantOptions" :key="'comp-' + variant" class="relative">
+                  <div
+                    class="rounded-xl border border-slate-700 bg-slate-900/70 p-3 hover:border-slate-500 transition-colors cursor-pointer"
+                    @click="addCompressorFromModal(processingModalCompressors[0].id, variant)"
+                  >
+                    <div class="transform scale-95 origin-top pointer-events-none">
+                      <CompressorUI
+                        :values="processingModalCompressors[0].values"
+                        :color="'#FF5A1F'"
+                        :label-color="'#273444'"
+                        :knob-size="58"
+                        :layout="variant"
+                        title="Compressor"
+                      />
+                    </div>
+                    <div class="mt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400 text-center">{{ variant }}</div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div
-              v-for="rev in fxModalReverbs"
-              :key="rev.id"
-              class="relative"
-            >
-              <ReverbUI
-                :values="rev.values"
-                :color="'#1c789f'"
-                :label-color="'#ffffff'"
-                :knob-size="58"
-                title="Reverb"
-                @panelClick="addReverbFromModal(rev.id)"
-                @update:mix="v => (rev.values.mix = v)"
-                @update:decay="v => (rev.values.decay = v)"
-                @update:lowCut="v => (rev.values.lowCut = v)"
-                @update:highCut="v => (rev.values.highCut = v)"
-              />
+            <div>
+              <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-300 mb-2">Reverb</div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div v-for="variant in reverbVariantOptions" :key="'rev-' + variant" class="relative">
+                  <div
+                    class="rounded-xl border border-slate-700 bg-slate-900/70 p-3 hover:border-slate-500 transition-colors cursor-pointer"
+                    @click="addReverbFromModal(fxModalReverbs[0].id, variant)"
+                  >
+                    <div class="transform scale-95 origin-top pointer-events-none">
+                      <ReverbUI
+                        :values="fxModalReverbs[0].values"
+                        :color="'#1c789f'"
+                        :label-color="'#ffffff'"
+                        :knob-size="58"
+                        :layout="variant"
+                        title="Reverb"
+                      />
+                    </div>
+                    <div class="mt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-300 text-center">{{ variant }}</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
