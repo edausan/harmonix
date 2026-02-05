@@ -134,7 +134,8 @@ function addCompressorFromModal(id) {
   fxPlugins.value.push({
     id: nextFxId++,
     type: 'compressor',
-    values: { ...comp.values }
+    values: { ...comp.values },
+    layout: 'Basic'
   })
   fxModalOpen.value = false
 }
@@ -148,7 +149,8 @@ function addReverbFromModal(id) {
   fxPlugins.value.push({
     id: nextFxId++,
     type: 'reverb',
-    values: { ...comp.values }
+    values: { ...comp.values },
+    layout: 'Basic'
   })
   fxModalOpen.value = false
 }
@@ -737,11 +739,11 @@ function deletePreset(name) {
                 <span class="text-[12px] font-semibold uppercase tracking-wide">Add Effect</span>
               </button>
             </div>
-            <div v-else class="grid grid-cols-[repeat(auto-fit,400px)] justify-start gap-4 items-stretch">
+            <div v-else class="grid grid-cols-[repeat(auto-fit,320px)] justify-start gap-4 items-stretch">
               <div
                 v-for="plugin in fxPlugins"
                 :key="plugin.id"
-                class="w-full relative min-w-0 h-[400px] flex items-stretch"
+                class="w-full relative min-w-0 h-[320px] flex items-stretch"
               >
                 <CompressorUI
                   v-if="plugin.type === 'compressor'"
@@ -750,12 +752,14 @@ function deletePreset(name) {
                   :label-color="'#273444'"
                   :knob-size="58"
                   :show-remove="true"
+                  :layout="plugin.layout"
                   @remove="
                     () => {
                       const idx = fxPlugins.findIndex(p => p.id === plugin.id)
                       if (idx >= 0) fxPlugins.splice(idx, 1)
                     }
                   "
+                  @update:layout="v => (plugin.layout = v)"
                   @update:threshold="v => (plugin.values.threshold = v)"
                   @update:attack="v => (plugin.values.attack = v)"
                   @update:release="v => (plugin.values.release = v)"
@@ -770,19 +774,21 @@ function deletePreset(name) {
                   :label-color="'#ffffff'"
                   :knob-size="58"
                   :show-remove="true"
+                  :layout="plugin.layout"
                   @remove="
                     () => {
                       const idx = fxPlugins.findIndex(p => p.id === plugin.id)
                       if (idx >= 0) fxPlugins.splice(idx, 1)
                     }
                   "
+                  @update:layout="v => (plugin.layout = v)"
                   @update:mix="v => (plugin.values.mix = v)"
                   @update:decay="v => (plugin.values.decay = v)"
                   @update:lowCut="v => (plugin.values.lowCut = v)"
                   @update:highCut="v => (plugin.values.highCut = v)"
                 />
               </div>
-              <div class="w-full relative min-w-0 h-[400px] flex items-center justify-center">
+              <div class="w-full relative min-w-0 h-[320px] flex items-center justify-center">
                 <button
                   type="button"
                   class="w-[200px] h-[200px] rounded-2xl border-2 border-dashed border-slate-600 text-slate-300 bg-slate-800/40 hover:border-slate-500 transition-colors flex items-center justify-center"
@@ -959,7 +965,7 @@ function deletePreset(name) {
               Close
             </button>
           </div>
-          <div class="grid grid-cols-[repeat(auto-fit,400px)] justify-start gap-4">
+          <div class="grid grid-cols-[repeat(auto-fit,320px)] justify-start gap-4">
             <div
               v-for="comp in processingModalCompressors"
               :key="comp.id"

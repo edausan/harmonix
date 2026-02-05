@@ -17,13 +17,15 @@ const props = defineProps({
   knobSize: { type: Number, default: 64 },
   title: { type: String, default: 'Reverb' },
   labelColor: { type: String, default: '#ffffff' },
-  showRemove: { type: Boolean, default: false }
+  labelColor: { type: String, default: '#ffffff' },
+  layout: { type: String, default: 'Basic' }
 })
 const emit = defineEmits([
   'update:mix',
   'update:decay',
   'update:lowCut',
   'update:highCut',
+  'update:layout',
   'panelClick',
   'remove'
 ])
@@ -55,6 +57,16 @@ function onRemoveClick(e) {
   e.stopPropagation()
   emit('remove')
 }
+const layoutOpen = ref(false)
+function toggleLayout(e) {
+  e && e.stopPropagation && e.stopPropagation()
+  layoutOpen.value = !layoutOpen.value
+}
+function selectLayout(val) {
+  layoutOpen.value = false
+  emit('update:layout', String(val))
+}
+const layoutOptions = ['Basic', 'Side-chain', 'Basic EQ']
 const mixPct = computed(() => {
   const v = Number(props.values?.mix ?? 0)
   const pct = (v / 127) * 100
@@ -85,7 +97,7 @@ const highCutHz = computed(() => {
 
 <template>
   <div
-    class="rounded-2xl p-4 md:p-6 w-[400px] min-w-[400px] max-w-[400px] h-[400px] mx-auto reverb-wrap relative"
+    class="rounded-2xl p-4 md:p-6 w-[320px] min-w-[320px] max-w-[320px] h-[320px] mx-auto reverb-wrap relative flex flex-col"
     :style="{
       '--channel-color': '#ffffff',
       '--channel-color-glow': '#ffffff',
@@ -95,21 +107,50 @@ const highCutHz = computed(() => {
   >
     <HudOverlay :visible="hudVisible" :label="hudLabel" :value="hudValue" :top="16" :fixed="false" :z="80" />
     <div class="mb-4 flex items-center justify-between">
-      <div class="px-3 py-1 rounded-full text-[10px] font-semibold tracking-widest uppercase reverb-title-label">
-        {{ title }}
+      <div class="relative">
+        <button
+          type="button"
+          class="px-3 py-1 rounded-full text-[10px] font-semibold tracking-widest uppercase reverb-title-label"
+          @click.stop="toggleLayout"
+          :aria-expanded="layoutOpen ? 'true' : 'false'"
+        >
+          {{ layout || 'Basic' }}
+        </button>
+        <div
+          v-show="layoutOpen"
+          class="absolute left-0 top-full mt-2 z-20 min-w-[12rem] rounded-xl border border-slate-700 bg-slate-900 shadow-xl shadow-black/40 py-2"
+          role="menu"
+          @click.stop
+        >
+          <button
+            v-for="opt in layoutOptions"
+            :key="opt"
+            type="button"
+            class="w-full text-left px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-200 hover:bg-slate-800/70"
+            @click="selectLayout(opt)"
+          >
+            {{ opt }}
+          </button>
+        </div>
       </div>
       <button
         v-if="showRemove"
         type="button"
-        class="px-2 py-1 rounded-md text-slate-900 text-[11px] hover:text-black transition-colors bg-transparent"
-        title="Remove reverb"
-        aria-label="Remove reverb"
+        class="px-2 py-1 rounded-md text-slate-200 hover:text-red-400 hover:bg-slate-800/20 transition-colors bg-transparent"
+        title="Remove"
+        aria-label="Remove"
         @click="onRemoveClick"
       >
-        ✕
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          <line x1="10" y1="11" x2="10" y2="17"></line>
+          <line x1="14" y1="11" x2="14" y2="17"></line>
+        </svg>
       </button>
     </div>
-    <div class="grid grid-cols-2 gap-6">
+    <div class="flex-1 flex items-center justify-center">
+      <div class="grid grid-cols-2 gap-6 w-full">
       <div class="flex flex-col items-center gap-3">
         <MixerKnob
           :value="values.mix"
@@ -154,6 +195,7 @@ const highCutHz = computed(() => {
         />
         <span class="text-[10px] font-medium uppercase tracking-wide reverb-label">High Cut</span>
       </div>
+      </div>
     </div>
   </div>
   </template>
@@ -168,9 +210,9 @@ const highCutHz = computed(() => {
     0 10px 20px rgb(0 0 0 / 0.35);
 }
 .reverb-title-label {
-  background: color-mix(in srgb, #1c789f 25%, #ffffff);
-  border: 1px solid color-mix(in srgb, #1c789f 70%, #000000);
-  color: var(--label-color);
+  background: color-mix(in srgb, #1c789f 60%, #000000);
+  border: 1px solid color-mix(in srgb, #1c789f 85%, #000000);
+  color: #ffffff;
 }
 .reverb-label {
   color: var(--label-color);
