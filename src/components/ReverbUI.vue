@@ -18,7 +18,11 @@ const props = defineProps({
   title: { type: String, default: 'Reverb' },
   labelColor: { type: String, default: '#ffffff' },
   showRemove: { type: Boolean, default: false },
-  layout: { type: String, default: 'Basic' }
+  layout: { type: String, default: 'Basic' },
+  ccMix: { type: Number, default: undefined },
+  ccDecay: { type: Number, default: undefined },
+  ccLowCut: { type: Number, default: undefined },
+  ccHighCut: { type: Number, default: undefined }
 })
 const emit = defineEmits([
   'update:mix',
@@ -160,7 +164,7 @@ const highCutHz = computed(() => {
           :hud-enabled="false"
           @input="v => onVal('mix', v)"
         />
-        <span class="text-[10px] font-medium uppercase tracking-wide reverb-label">Mix · {{ mixPct }}%</span>
+        <span class="text-[10px] font-medium uppercase tracking-wide reverb-label">Mix · {{ mixPct }}%<span v-if="ccMix != null"> · CC {{ ccMix }}</span></span>
       </div>
       <div class="flex flex-col items-center gap-3">
         <MixerKnob
@@ -171,7 +175,7 @@ const highCutHz = computed(() => {
           :hud-enabled="false"
           @input="v => onVal('decay', v)"
         />
-        <span class="text-[10px] font-medium uppercase tracking-wide reverb-label">Decay</span>
+        <span class="text-[10px] font-medium uppercase tracking-wide reverb-label">Decay<span v-if="ccDecay != null"> · CC {{ ccDecay }}</span></span>
       </div>
       <div class="flex flex-col items-center gap-3">
         <MixerKnob
@@ -182,7 +186,7 @@ const highCutHz = computed(() => {
           :hud-enabled="false"
           @input="v => onVal('lowCut', v)"
         />
-        <span class="text-[10px] font-medium uppercase tracking-wide reverb-label">Low Cut</span>
+        <span class="text-[10px] font-medium uppercase tracking-wide reverb-label">Low Cut<span v-if="ccLowCut != null"> · CC {{ ccLowCut }}</span></span>
       </div>
       <div class="flex flex-col items-center gap-3">
         <MixerKnob
@@ -193,7 +197,7 @@ const highCutHz = computed(() => {
           :hud-enabled="false"
           @input="v => onVal('highCut', v)"
         />
-        <span class="text-[10px] font-medium uppercase tracking-wide reverb-label">High Cut</span>
+        <span class="text-[10px] font-medium uppercase tracking-wide reverb-label">High Cut<span v-if="ccHighCut != null"> · CC {{ ccHighCut }}</span></span>
       </div>
       </div>
     </div>

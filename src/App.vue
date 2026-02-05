@@ -126,12 +126,12 @@ const processingModalCompressors = ref([
 function toggleFxModal() {
   fxModalOpen.value = !fxModalOpen.value
 }
-const fxPlugins = ref([])
+const fxPluginsByChannel = ref(mixerChannels.map(() => []))
 let nextFxId = 1
 function addCompressorFromModal(id) {
   const comp = processingModalCompressors.value.find(c => c.id === id)
   if (!comp) return
-  fxPlugins.value.push({
+  fxPluginsByChannel.value[selectedChannelIndex.value].push({
     id: nextFxId++,
     type: 'compressor',
     values: { ...comp.values },
@@ -146,13 +146,33 @@ const fxModalReverbs = ref([
 function addReverbFromModal(id) {
   const comp = fxModalReverbs.value.find(c => c.id === id)
   if (!comp) return
-  fxPlugins.value.push({
+  fxPluginsByChannel.value[selectedChannelIndex.value].push({
     id: nextFxId++,
     type: 'reverb',
     values: { ...comp.values },
     layout: 'Basic'
   })
   fxModalOpen.value = false
+}
+
+function fxCc(pluginType, param, channelIdx, slotIdx) {
+  const baseIdx = Number.isFinite(channelIdx) ? channelIdx : selectedChannelIndex.value
+  const slot = Number.isFinite(slotIdx) ? slotIdx : 0
+  const stride = 16 * slot
+  if (pluginType === 'compressor') {
+    if (param === 'threshold') return 40 + baseIdx + stride
+    if (param === 'attack') return 41 + baseIdx + stride
+    if (param === 'release') return 42 + baseIdx + stride
+    if (param === 'knee') return 43 + baseIdx + stride
+    if (param === 'makeup') return 44 + baseIdx + stride
+    if (param === 'ratio') return 45 + baseIdx + stride
+  } else if (pluginType === 'reverb') {
+    if (param === 'mix') return 50 + baseIdx + stride
+    if (param === 'decay') return 51 + baseIdx + stride
+    if (param === 'lowCut') return 52 + baseIdx + stride
+    if (param === 'highCut') return 53 + baseIdx + stride
+  }
+  return 127
 }
 const hudVisible = ref(false)
 const hudLabel = ref('')
@@ -491,7 +511,12 @@ function savePreset(name) {
       values: {
         fader: channelValues.value[i].fader,
         knobs: [...channelValues.value[i].knobs]
-      }
+      },
+      effects: (fxPluginsByChannel.value[i] || []).map(p => ({
+        type: p.type,
+        layout: p.layout,
+        values: { ...p.values }
+      }))
     }))
   }
   let presets = {}
@@ -531,7 +556,8 @@ function ensureDefaultPreset() {
         values: {
           fader: channelValues.value[i].fader,
           knobs: [...channelValues.value[i].knobs]
-        }
+        },
+        effects: []
       }))
     }
     presets[DEFAULT_PRESET_NAME] = data
@@ -570,6 +596,13 @@ function applyPresetData(p) {
         }
       }
     }
+    const fx = Array.isArray(ch.effects) ? ch.effects : []
+    fxPluginsByChannel.value[i] = fx.map(e => ({
+      id: nextFxId++,
+      type: e.type === 'reverb' ? 'reverb' : 'compressor',
+      layout: e.layout || 'Basic',
+      values: { ...(e.values || {}) }
+    }))
   }
 }
 
@@ -724,7 +757,7 @@ function deletePreset(name) {
             />
           </div>
           <div v-else-if="toolbarTab === 'Effects'" class="h-full px-6 py-6 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-            <div v-if="fxPlugins.length === 0" class="h-full flex items-center justify-center">
+            <div v-if="fxPluginsByChannel[selectedChannelIndex].length === 0" class="h-full flex items-center justify-center">
               <button
                 type="button"
                 class="w-[200px] h-[200px] rounded-2xl border-2 border-dashed border-slate-600 text-slate-300 bg-slate-800/40 hover:border-slate-500 transition-colors flex items-center justify-center gap-2"
@@ -741,7 +774,7 @@ function deletePreset(name) {
             </div>
             <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 justify-start gap-4 items-stretch">
               <div
-                v-for="plugin in fxPlugins"
+                v-for="(plugin, fxIndex) in fxPluginsByChannel[selectedChannelIndex]"
                 :key="plugin.id"
                 class="w-full relative min-w-0 h-[320px] flex items-stretch"
               >
@@ -753,19 +786,25 @@ function deletePreset(name) {
                   :knob-size="58"
                   :show-remove="true"
                   :layout="plugin.layout"
+                  :cc-threshold="fxCc('compressor','threshold', selectedChannelIndex, fxIndex)"
+                  :cc-makeup="fxCc('compressor','makeup', selectedChannelIndex, fxIndex)"
+                  :cc-attack="fxCc('compressor','attack', selectedChannelIndex, fxIndex)"
+                  :cc-release="fxCc('compressor','release', selectedChannelIndex, fxIndex)"
+                  :cc-ratio="fxCc('compressor','ratio', selectedChannelIndex, fxIndex)"
                   @remove="
                     () => {
-                      const idx = fxPlugins.findIndex(p => p.id === plugin.id)
-                      if (idx >= 0) fxPlugins.splice(idx, 1)
+                      const list = fxPluginsByChannel[selectedChannelIndex]
+                      const idx = list.findIndex(p => p.id === plugin.id)
+                      if (idx >= 0) list.splice(idx, 1)
                     }
                   "
                   @update:layout="v => (plugin.layout = v)"
-                  @update:threshold="v => (plugin.values.threshold = v)"
-                  @update:attack="v => (plugin.values.attack = v)"
-                  @update:release="v => (plugin.values.release = v)"
-                  @update:knee="v => (plugin.values.knee = v)"
-                  @update:makeup="v => (plugin.values.makeup = v)"
-                  @update:ratio="v => (plugin.values.ratio = v)"
+                  @update:threshold="v => { plugin.values.threshold = v; sendCC(fxCc('compressor','threshold', selectedChannelIndex, fxIndex), v) }"
+                  @update:attack="v => { plugin.values.attack = v; sendCC(fxCc('compressor','attack', selectedChannelIndex, fxIndex), v) }"
+                  @update:release="v => { plugin.values.release = v; sendCC(fxCc('compressor','release', selectedChannelIndex, fxIndex), v) }"
+                  @update:knee="v => { plugin.values.knee = v; sendCC(fxCc('compressor','knee', selectedChannelIndex, fxIndex), v) }"
+                  @update:makeup="v => { plugin.values.makeup = v; sendCC(fxCc('compressor','makeup', selectedChannelIndex, fxIndex), v) }"
+                  @update:ratio="v => { plugin.values.ratio = v; sendCC(fxCc('compressor','ratio', selectedChannelIndex, fxIndex), v) }"
                 />
                 <ReverbUI
                   v-else-if="plugin.type === 'reverb'"
@@ -775,17 +814,22 @@ function deletePreset(name) {
                   :knob-size="58"
                   :show-remove="true"
                   :layout="plugin.layout"
+                  :cc-mix="fxCc('reverb','mix', selectedChannelIndex, fxIndex)"
+                  :cc-decay="fxCc('reverb','decay', selectedChannelIndex, fxIndex)"
+                  :cc-low-cut="fxCc('reverb','lowCut', selectedChannelIndex, fxIndex)"
+                  :cc-high-cut="fxCc('reverb','highCut', selectedChannelIndex, fxIndex)"
                   @remove="
                     () => {
-                      const idx = fxPlugins.findIndex(p => p.id === plugin.id)
-                      if (idx >= 0) fxPlugins.splice(idx, 1)
+                      const list = fxPluginsByChannel[selectedChannelIndex]
+                      const idx = list.findIndex(p => p.id === plugin.id)
+                      if (idx >= 0) list.splice(idx, 1)
                     }
                   "
                   @update:layout="v => (plugin.layout = v)"
-                  @update:mix="v => (plugin.values.mix = v)"
-                  @update:decay="v => (plugin.values.decay = v)"
-                  @update:lowCut="v => (plugin.values.lowCut = v)"
-                  @update:highCut="v => (plugin.values.highCut = v)"
+                  @update:mix="v => { plugin.values.mix = v; sendCC(fxCc('reverb','mix', selectedChannelIndex, fxIndex), v) }"
+                  @update:decay="v => { plugin.values.decay = v; sendCC(fxCc('reverb','decay', selectedChannelIndex, fxIndex), v) }"
+                  @update:lowCut="v => { plugin.values.lowCut = v; sendCC(fxCc('reverb','lowCut', selectedChannelIndex, fxIndex), v) }"
+                  @update:highCut="v => { plugin.values.highCut = v; sendCC(fxCc('reverb','highCut', selectedChannelIndex, fxIndex), v) }"
                 />
               </div>
               <div class="w-full relative min-w-0 h-[320px] flex items-center justify-center">
