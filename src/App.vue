@@ -739,7 +739,7 @@ function deletePreset(name) {
                 <span class="text-[12px] font-semibold uppercase tracking-wide">Add Effect</span>
               </button>
             </div>
-            <div v-else class="grid grid-cols-[repeat(auto-fit,320px)] justify-start gap-4 items-stretch">
+            <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 justify-start gap-4 items-stretch">
               <div
                 v-for="plugin in fxPlugins"
                 :key="plugin.id"
@@ -954,7 +954,7 @@ function deletePreset(name) {
     >
       <div class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
       <div class="relative w-full max-w-5xl mx-auto px-6">
-        <div class="rounded-2xl bg-slate-900/90 border border-slate-800 shadow-2xl p-6">
+        <div class="rounded-2xl bg-slate-900/90 border border-slate-800 shadow-2xl p-6 max-h-[80vh] overflow-y-auto">
           <div class="mb-4 flex items-center justify-between">
             <div class="text-[12px] font-semibold uppercase tracking-wider text-slate-200">Add Effects</div>
             <button
@@ -965,7 +965,7 @@ function deletePreset(name) {
               Close
             </button>
           </div>
-          <div class="grid grid-cols-[repeat(auto-fit,320px)] justify-start gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 justify-start gap-4">
             <div
               v-for="comp in processingModalCompressors"
               :key="comp.id"

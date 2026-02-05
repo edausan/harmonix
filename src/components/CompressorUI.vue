@@ -114,7 +114,7 @@ function onRatioSelect(index) {
 
 <template>
   <div
-    class="rounded-2xl p-4 md:p-6 w-[320px] min-w-[320px] max-w-[320px] h-[320px] mx-auto compressor-wrap relative flex flex-col"
+    class="rounded-2xl p-4 md:p-6 w-full min-w-0 max-w-none h-[320px] mx-auto compressor-wrap relative flex flex-col"
     :style="{
       '--channel-color': color,
       '--channel-color-glow': color,
@@ -188,7 +188,7 @@ function onRatioSelect(index) {
       </div>
     </div>
     <div class="flex-1 flex items-center justify-center">
-      <div class="grid grid-cols-2 gap-6">
+      <div class="grid grid-cols-2 gap-6 w-full place-items-center">
       <div class="flex flex-col items-center gap-3">
         <MixerKnob
           :value="values.threshold"
