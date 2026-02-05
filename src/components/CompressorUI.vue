@@ -102,7 +102,7 @@ function onRatioSelect(index) {
 
 <template>
   <div
-    class="rounded-2xl p-4 md:p-6 w-full max-w-xl mx-auto compressor-wrap relative"
+    class="rounded-2xl p-4 md:p-6 w-[400px] min-w-[400px] max-w-[400px] h-[400px] mx-auto compressor-wrap relative"
     :style="{
       '--channel-color': color,
       '--channel-color-glow': color,

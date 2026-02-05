@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onUnmounted, watch } from 'vue'
+import { ref, onUnmounted, watch, computed } from 'vue'
 
 const props = defineProps({
   value: { type: Number, default: 0 },
@@ -128,13 +128,18 @@ function bumpHud() {
   if (!props.hudEnabled) return
   showHud.value = true
   try {
-    if (props.hudLabel) {
-      window.dispatchEvent(
-        new CustomEvent('harmonix:valueHud', {
-          detail: { label: props.hudLabel, value: props.hudValue || String(props.value) }
-        })
-      )
-    }
+    const center = (props.min + props.max) / 2
+    const isPan = props.mode === 'pan'
+    const left = isPan && props.value < center ? Math.min(50, Math.round(((center - props.value) / (center - props.min || 1)) * 50)) : 0
+    const right = isPan && props.value > center ? Math.min(50, Math.round(((props.value - center) / (props.max - center || 1)) * 50)) : 0
+    const activePanVal = isPan ? (left || right || 0) : null
+    const label = isPan ? 'Pan' : (props.hudLabel || '')
+    const value = isPan ? String(activePanVal) : (props.hudValue || String(props.value))
+    window.dispatchEvent(
+      new CustomEvent('harmonix:valueHud', {
+        detail: { label, value }
+      })
+    )
   } catch {}
   if (hudTimer) clearTimeout(hudTimer)
   hudTimer = setTimeout(() => {
@@ -149,6 +154,19 @@ watch(
     bumpHud()
   }
 )
+const centerVal = computed(() => (props.min + props.max) / 2)
+const panLeftVal = computed(() => {
+  const center = centerVal.value
+  if (props.value >= center) return 0
+  const ratio = (center - props.value) / (center - props.min || 1)
+  return Math.min(50, Math.round(ratio * 50))
+})
+const panRightVal = computed(() => {
+  const center = centerVal.value
+  if (props.value <= center) return 0
+  const ratio = (props.value - center) / (props.max - center || 1)
+  return Math.min(50, Math.round(ratio * 50))
+})
 </script>
 
 <template>

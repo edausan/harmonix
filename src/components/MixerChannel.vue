@@ -224,7 +224,12 @@ function onKnobInput(index, cc, valueOrEvent) {
   selected.value = true
   const label = (props.channelConfig.knobs || [])[index]?.label || 'Knob'
   const center = Math.round((0 + 127) / 2)
-  const hudVal = label === 'Pan' ? (value === center ? 'Center' : value < center ? 'Left' : 'Right') : formatDb(value)
+  let hudVal = formatDb(value)
+  if (label === 'Pan') {
+    const left = value < center ? Math.min(50, Math.round(((center - value) / (center - 0 || 1)) * 50)) : 0
+    const right = value > center ? Math.min(50, Math.round(((value - center) / (127 - center || 1)) * 50)) : 0
+    hudVal = value === center ? 'Center' : (value < center ? `Left ${left}` : `Right ${right}`)
+  }
   hudTop.value = -24
   showHud(label, hudVal)
 }
@@ -392,7 +397,8 @@ function formatDb(value) {
               :value="values?.knobs?.[index] ?? 64"
               :size="knobSize"
               :mode="k.label === 'Pan' ? 'pan' : 'default'"
-              :hud-enabled="false"
+              :hud-enabled="k.label === 'Pan'"
+              :hud-label="k.label === 'Pan' ? 'Pan' : ''"
               @input="val => onKnobInput(index, k.cc, val)"
             />
             <span class="text-[9px] font-medium text-slate-300 uppercase tracking-wide">

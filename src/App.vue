@@ -5,6 +5,7 @@ import MixerTopBar from './components/MixerTopBar.vue'
 import MixerChannel from './components/MixerChannel.vue'
 import MixerLegend from './components/MixerLegend.vue'
 import CompressorUI from './components/CompressorUI.vue'
+import ReverbUI from './components/ReverbUI.vue'
 import HudOverlay from './components/HudOverlay.vue'
 import { ref as vueRef } from 'vue'
 
@@ -111,23 +112,7 @@ const compressorValues = ref({
   makeup: 64,
   ratio: 64
 })
-const processingPlugins = ref([])
-let nextPluginId = 1
-function addCompressor() {
-  processingPlugins.value.push({
-    id: nextPluginId++,
-    type: 'compressor',
-    values: {
-      threshold: 64,
-      attack: 64,
-      release: 64,
-      knee: 64,
-      makeup: 64,
-      ratio: 64
-    }
-  })
-}
-const processingModalOpen = ref(false)
+const fxModalOpen = ref(false)
 const processingModalCompressors = ref([
   {
     id: 'modal-1',
@@ -138,18 +123,34 @@ const processingModalCompressors = ref([
     values: { threshold: 64, attack: 64, release: 64, knee: 64, makeup: 64, ratio: 64 }
   }
 ])
-function toggleProcessingModal() {
-  processingModalOpen.value = !processingModalOpen.value
+function toggleFxModal() {
+  fxModalOpen.value = !fxModalOpen.value
 }
+const fxPlugins = ref([])
+let nextFxId = 1
 function addCompressorFromModal(id) {
   const comp = processingModalCompressors.value.find(c => c.id === id)
   if (!comp) return
-  processingPlugins.value.push({
-    id: nextPluginId++,
+  fxPlugins.value.push({
+    id: nextFxId++,
     type: 'compressor',
     values: { ...comp.values }
   })
-  processingModalOpen.value = false
+  fxModalOpen.value = false
+}
+const fxModalReverbs = ref([
+  { id: 'rev-1', values: { mix: 64, decay: 64, lowCut: 64, highCut: 64 } },
+  { id: 'rev-2', values: { mix: 64, decay: 64, lowCut: 64, highCut: 64 } }
+])
+function addReverbFromModal(id) {
+  const comp = fxModalReverbs.value.find(c => c.id === id)
+  if (!comp) return
+  fxPlugins.value.push({
+    id: nextFxId++,
+    type: 'reverb',
+    values: { ...comp.values }
+  })
+  fxModalOpen.value = false
 }
 const hudVisible = ref(false)
 const hudLabel = ref('')
@@ -648,14 +649,6 @@ function deletePreset(name) {
             <button
               type="button"
               class="px-3 py-1.5 text-[11px] tracking-wide transition-colors touch-manipulation border-r border-slate-700 min-w-[5.5rem]"
-              :class="toolbarTab === 'Processing' ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/60' : 'bg-slate-800 text-slate-200 hover:border-slate-600'"
-              @click="toolbarTab = 'Processing'"
-            >
-              Processing
-            </button>
-            <button
-              type="button"
-              class="px-3 py-1.5 text-[11px] tracking-wide transition-colors touch-manipulation border-r border-slate-700 min-w-[5.5rem]"
               :class="toolbarTab === 'Effects' ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/60' : 'bg-slate-800 text-slate-200 hover:border-slate-600'"
               @click="toolbarTab = 'Effects'"
             >
@@ -728,21 +721,27 @@ function deletePreset(name) {
               "
             />
           </div>
-          <div v-else-if="toolbarTab === 'Processing'" class="h-full px-6 py-6 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-            <div class="mb-4 flex items-center gap-2">
+          <div v-else-if="toolbarTab === 'Effects'" class="h-full px-6 py-6 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+            <div v-if="fxPlugins.length === 0" class="h-full flex items-center justify-center">
               <button
                 type="button"
-                class="px-3 py-1.5 rounded-md bg-slate-800/80 border border-slate-700 text-slate-200 text-[11px] font-semibold uppercase tracking-wide hover:border-slate-600"
-                @click="toggleProcessingModal"
+                class="w-[200px] h-[200px] rounded-2xl border-2 border-dashed border-slate-600 text-slate-300 bg-slate-800/40 hover:border-slate-500 transition-colors flex items-center justify-center gap-2"
+                title="Add Effect"
+                aria-label="Add Effect"
+                @click="toggleFxModal"
               >
-                Add Compressor
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 5v14"></path>
+                  <path d="M5 12h14"></path>
+                </svg>
+                <span class="text-[12px] font-semibold uppercase tracking-wide">Add Effect</span>
               </button>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
+            <div v-else class="grid grid-cols-[repeat(auto-fit,400px)] justify-start gap-4 items-stretch">
               <div
-                v-for="plugin in processingPlugins"
+                v-for="plugin in fxPlugins"
                 :key="plugin.id"
-                class="w-full relative"
+                class="w-full relative min-w-0 h-[400px] flex items-stretch"
               >
                 <CompressorUI
                   v-if="plugin.type === 'compressor'"
@@ -753,20 +752,52 @@ function deletePreset(name) {
                   :show-remove="true"
                   @remove="
                     () => {
-                      const idx = processingPlugins.findIndex(p => p.id === plugin.id)
-                      if (idx >= 0) processingPlugins.splice(idx, 1)
+                      const idx = fxPlugins.findIndex(p => p.id === plugin.id)
+                      if (idx >= 0) fxPlugins.splice(idx, 1)
                     }
                   "
                   @update:threshold="v => (plugin.values.threshold = v)"
                   @update:attack="v => (plugin.values.attack = v)"
                   @update:release="v => (plugin.values.release = v)"
+                  @update:knee="v => (plugin.values.knee = v)"
                   @update:makeup="v => (plugin.values.makeup = v)"
                   @update:ratio="v => (plugin.values.ratio = v)"
                 />
+                <ReverbUI
+                  v-else-if="plugin.type === 'reverb'"
+                  :values="plugin.values"
+                  :color="'#1c789f'"
+                  :label-color="'#ffffff'"
+                  :knob-size="58"
+                  :show-remove="true"
+                  @remove="
+                    () => {
+                      const idx = fxPlugins.findIndex(p => p.id === plugin.id)
+                      if (idx >= 0) fxPlugins.splice(idx, 1)
+                    }
+                  "
+                  @update:mix="v => (plugin.values.mix = v)"
+                  @update:decay="v => (plugin.values.decay = v)"
+                  @update:lowCut="v => (plugin.values.lowCut = v)"
+                  @update:highCut="v => (plugin.values.highCut = v)"
+                />
+              </div>
+              <div class="w-full relative min-w-0 h-[400px] flex items-center justify-center">
+                <button
+                  type="button"
+                  class="w-[200px] h-[200px] rounded-2xl border-2 border-dashed border-slate-600 text-slate-300 bg-slate-800/40 hover:border-slate-500 transition-colors flex items-center justify-center"
+                  title="Add Effect"
+                  aria-label="Add Effect"
+                  @click="toggleFxModal"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 5v14"></path>
+                    <path d="M5 12h14"></path>
+                  </svg>
+                </button>
               </div>
             </div>
           </div>
-          <div v-else-if="toolbarTab === 'Effects'" class="h-full px-6 py-6 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950"></div>
           <div v-else-if="toolbarTab === 'Sends'" class="h-full px-6 py-6 min-w-max bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
             <div class="h-full flex gap-4 pb-16">
               <MixerChannel
@@ -897,7 +928,7 @@ function deletePreset(name) {
     leave-from-class="opacity-100 translate-y-0"
     leave-to-class="opacity-0 -translate-y-1"
   >
-    <HudOverlay :visible="hudVisible" :label="hudLabel" :value="hudValue" :top="-14" :fixed="true" :backdrop="true" :z="2147483647" :dark-text="true" />
+    <HudOverlay :visible="false" :label="hudLabel" :value="hudValue" :top="-14" :fixed="true" :backdrop="true" :z="2147483647" :dark-text="true" />
   </Transition>
 </Teleport>
 
@@ -911,24 +942,24 @@ function deletePreset(name) {
     leave-to-class="opacity-0"
   >
     <div
-      v-show="processingModalOpen"
+      v-show="fxModalOpen"
       class="fixed inset-0 z-50 flex items-center justify-center"
-      @click="e => { if (e.target === e.currentTarget) toggleProcessingModal() }"
+      @click="e => { if (e.target === e.currentTarget) toggleFxModal() }"
     >
       <div class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
       <div class="relative w-full max-w-5xl mx-auto px-6">
         <div class="rounded-2xl bg-slate-900/90 border border-slate-800 shadow-2xl p-6">
           <div class="mb-4 flex items-center justify-between">
-            <div class="text-[12px] font-semibold uppercase tracking-wider text-slate-200">Add Plugins</div>
+            <div class="text-[12px] font-semibold uppercase tracking-wider text-slate-200">Add Effects</div>
             <button
               type="button"
               class="px-2 py-1 rounded-md bg-slate-800/80 border border-slate-700 text-slate-300 text-[11px]"
-              @click="toggleProcessingModal"
+              @click="toggleFxModal"
             >
               Close
             </button>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="grid grid-cols-[repeat(auto-fit,400px)] justify-start gap-4">
             <div
               v-for="comp in processingModalCompressors"
               :key="comp.id"
@@ -947,6 +978,24 @@ function deletePreset(name) {
                 @update:knee="v => (comp.values.knee = v)"
                 @update:makeup="v => (comp.values.makeup = v)"
                 @update:ratio="v => (comp.values.ratio = v)"
+              />
+            </div>
+            <div
+              v-for="rev in fxModalReverbs"
+              :key="rev.id"
+              class="relative"
+            >
+              <ReverbUI
+                :values="rev.values"
+                :color="'#1c789f'"
+                :label-color="'#ffffff'"
+                :knob-size="58"
+                title="Reverb"
+                @panelClick="addReverbFromModal(rev.id)"
+                @update:mix="v => (rev.values.mix = v)"
+                @update:decay="v => (rev.values.decay = v)"
+                @update:lowCut="v => (rev.values.lowCut = v)"
+                @update:highCut="v => (rev.values.highCut = v)"
               />
             </div>
           </div>
