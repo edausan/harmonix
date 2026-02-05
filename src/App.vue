@@ -166,6 +166,8 @@ function fxCc(pluginType, param, channelIdx, slotIdx) {
     if (param === 'knee') return 43 + baseIdx + stride
     if (param === 'makeup') return 44 + baseIdx + stride
     if (param === 'ratio') return 45 + baseIdx + stride
+    if (param === 'lowCut') return 46 + baseIdx + stride
+    if (param === 'highCut') return 47 + baseIdx + stride
   } else if (pluginType === 'reverb') {
     if (param === 'mix') return 50 + baseIdx + stride
     if (param === 'decay') return 51 + baseIdx + stride
@@ -791,6 +793,8 @@ function deletePreset(name) {
                   :cc-attack="fxCc('compressor','attack', selectedChannelIndex, fxIndex)"
                   :cc-release="fxCc('compressor','release', selectedChannelIndex, fxIndex)"
                   :cc-ratio="fxCc('compressor','ratio', selectedChannelIndex, fxIndex)"
+                  :cc-low-cut="fxCc('compressor','lowCut', selectedChannelIndex, fxIndex)"
+                  :cc-high-cut="fxCc('compressor','highCut', selectedChannelIndex, fxIndex)"
                   @remove="
                     () => {
                       const list = fxPluginsByChannel[selectedChannelIndex]
@@ -805,6 +809,8 @@ function deletePreset(name) {
                   @update:knee="v => { plugin.values.knee = v; sendCC(fxCc('compressor','knee', selectedChannelIndex, fxIndex), v) }"
                   @update:makeup="v => { plugin.values.makeup = v; sendCC(fxCc('compressor','makeup', selectedChannelIndex, fxIndex), v) }"
                   @update:ratio="v => { plugin.values.ratio = v; sendCC(fxCc('compressor','ratio', selectedChannelIndex, fxIndex), v) }"
+                  @update:lowCut="v => { plugin.values.lowCut = v; sendCC(fxCc('compressor','lowCut', selectedChannelIndex, fxIndex), v) }"
+                  @update:highCut="v => { plugin.values.highCut = v; sendCC(fxCc('compressor','highCut', selectedChannelIndex, fxIndex), v) }"
                 />
                 <ReverbUI
                   v-else-if="plugin.type === 'reverb'"
