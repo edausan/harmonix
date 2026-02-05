@@ -1,5 +1,6 @@
 <script setup>
 import MixerKnob from './MixerKnob.vue'
+import MakeupGainKnob from './knobs/MakeupGainKnob.vue'
 import LowCutKnob from './knobs/LowCutKnob.vue'
 import HighCutKnob from './knobs/HighCutKnob.vue'
 import { computed, onMounted, onUnmounted } from 'vue'
@@ -280,16 +281,7 @@ onUnmounted(() => {
       </div>
       <div class="flex flex-col items-center">
         <div class="flex flex-col items-center gap-3">
-          <MixerKnob
-            :value="values.makeup"
-            :size="knobSize"
-            :hud-label="'Makeup Gain'"
-            :hud-value="makeupDb + ' dB'"
-            :highlight-from-center="true"
-            :reset-value="64"
-            :hud-enabled="false"
-            @input="v => onVal('makeup', v)"
-          />
+          <MakeupGainKnob :value="values.makeup" :size="knobSize" :hud-enabled="false" @input="v => onVal('makeup', v)" />
           <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Makeup Gain</span>
         </div>
         <span v-if="ccMakeup != null" class="mt-0.5 text-[9px] font-semibold uppercase tracking-wide comp-label opacity-70">CC {{ ccMakeup }}</span>
