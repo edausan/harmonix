@@ -101,7 +101,7 @@ const highCutHz = computed(() => {
 
 <template>
   <div
-    class="rounded-2xl p-4 md:p-6 w-full min-w-0 max-w-none h-[320px] mx-auto reverb-wrap relative flex flex-col"
+    class="rounded-2xl p-4 md:p-6 w-full min-w-0 max-w-none h-[400px] mx-auto reverb-wrap relative flex flex-col"
     :style="{
       '--channel-color': '#ffffff',
       '--channel-color-glow': '#ffffff',
@@ -155,49 +155,61 @@ const highCutHz = computed(() => {
     </div>
     <div class="flex-1 flex items-center justify-center">
       <div class="grid grid-cols-2 gap-6 w-full place-items-center">
-      <div class="flex flex-col items-center gap-3">
-        <MixerKnob
-          :value="values.mix"
-          :size="knobSize"
-          :hud-label="'Mix'"
-          :hud-value="mixPct + '%'"
-          :hud-enabled="false"
-          @input="v => onVal('mix', v)"
-        />
-        <span class="text-[10px] font-medium uppercase tracking-wide reverb-label">Mix · {{ mixPct }}%<span v-if="ccMix != null"> · CC {{ ccMix }}</span></span>
+      <div class="flex flex-col items-center">
+        <div class="flex flex-col items-center gap-3">
+          <MixerKnob
+            :value="values.mix"
+            :size="knobSize"
+            :hud-label="'Mix'"
+            :hud-value="mixPct + '%'"
+            :hud-enabled="false"
+            @input="v => onVal('mix', v)"
+          />
+          <span class="text-[10px] font-medium uppercase tracking-wide reverb-label">Mix · {{ mixPct }}%</span>
+        </div>
+        <span v-if="ccMix != null" class="mt-0.5 text-[9px] font-semibold uppercase tracking-wide reverb-label opacity-70">CC {{ ccMix }}</span>
       </div>
-      <div class="flex flex-col items-center gap-3">
-        <MixerKnob
-          :value="values.decay"
-          :size="knobSize"
-          :hud-label="'Decay'"
-          :hud-value="decaySecStr"
-          :hud-enabled="false"
-          @input="v => onVal('decay', v)"
-        />
-        <span class="text-[10px] font-medium uppercase tracking-wide reverb-label">Decay<span v-if="ccDecay != null"> · CC {{ ccDecay }}</span></span>
+      <div class="flex flex-col items-center">
+        <div class="flex flex-col items-center gap-3">
+          <MixerKnob
+            :value="values.decay"
+            :size="knobSize"
+            :hud-label="'Decay'"
+            :hud-value="decaySecStr"
+            :hud-enabled="false"
+            @input="v => onVal('decay', v)"
+          />
+          <span class="text-[10px] font-medium uppercase tracking-wide reverb-label">Decay</span>
+        </div>
+        <span v-if="ccDecay != null" class="mt-0.5 text-[9px] font-semibold uppercase tracking-wide reverb-label opacity-70">CC {{ ccDecay }}</span>
       </div>
-      <div class="flex flex-col items-center gap-3">
-        <MixerKnob
-          :value="values.lowCut"
-          :size="knobSize"
-          :hud-label="'Low Cut'"
-          :hud-value="lowCutHz + ' Hz'"
-          :hud-enabled="false"
-          @input="v => onVal('lowCut', v)"
-        />
-        <span class="text-[10px] font-medium uppercase tracking-wide reverb-label">Low Cut<span v-if="ccLowCut != null"> · CC {{ ccLowCut }}</span></span>
+      <div class="flex flex-col items-center">
+        <div class="flex flex-col items-center gap-3">
+          <MixerKnob
+            :value="values.lowCut"
+            :size="knobSize"
+            :hud-label="'Low Cut'"
+            :hud-value="lowCutHz + ' Hz'"
+            :hud-enabled="false"
+            @input="v => onVal('lowCut', v)"
+          />
+          <span class="text-[10px] font-medium uppercase tracking-wide reverb-label">Low Cut</span>
+        </div>
+        <span v-if="ccLowCut != null" class="mt-0.5 text-[9px] font-semibold uppercase tracking-wide reverb-label opacity-70">CC {{ ccLowCut }}</span>
       </div>
-      <div class="flex flex-col items-center gap-3">
-        <MixerKnob
-          :value="values.highCut"
-          :size="knobSize"
-          :hud-label="'High Cut'"
-          :hud-value="highCutHz + ' Hz'"
-          :hud-enabled="false"
-          @input="v => onVal('highCut', v)"
-        />
-        <span class="text-[10px] font-medium uppercase tracking-wide reverb-label">High Cut<span v-if="ccHighCut != null"> · CC {{ ccHighCut }}</span></span>
+      <div class="flex flex-col items-center">
+        <div class="flex flex-col items-center gap-3">
+          <MixerKnob
+            :value="values.highCut"
+            :size="knobSize"
+            :hud-label="'High Cut'"
+            :hud-value="highCutHz + ' Hz'"
+            :hud-enabled="false"
+            @input="v => onVal('highCut', v)"
+          />
+          <span class="text-[10px] font-medium uppercase tracking-wide reverb-label">High Cut</span>
+        </div>
+        <span v-if="ccHighCut != null" class="mt-0.5 text-[9px] font-semibold uppercase tracking-wide reverb-label opacity-70">CC {{ ccHighCut }}</span>
       </div>
       </div>
     </div>

@@ -776,7 +776,7 @@ function deletePreset(name) {
               <div
                 v-for="(plugin, fxIndex) in fxPluginsByChannel[selectedChannelIndex]"
                 :key="plugin.id"
-                class="w-full relative min-w-0 h-[320px] flex items-stretch"
+                class="w-full relative min-w-0 h-[400px] flex items-stretch"
               >
                 <CompressorUI
                   v-if="plugin.type === 'compressor'"
@@ -832,7 +832,7 @@ function deletePreset(name) {
                   @update:highCut="v => { plugin.values.highCut = v; sendCC(fxCc('reverb','highCut', selectedChannelIndex, fxIndex), v) }"
                 />
               </div>
-              <div class="w-full relative min-w-0 h-[320px] flex items-center justify-center">
+              <div class="w-full relative min-w-0 h-[400px] flex items-center justify-center">
                 <button
                   type="button"
                   class="w-[200px] h-[200px] rounded-2xl border-2 border-dashed border-slate-600 text-slate-300 bg-slate-800/40 hover:border-slate-500 transition-colors flex items-center justify-center"

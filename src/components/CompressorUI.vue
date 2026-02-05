@@ -119,7 +119,7 @@ function onRatioSelect(index) {
 
 <template>
   <div
-    class="rounded-2xl p-4 md:p-6 w-full min-w-0 max-w-none h-[320px] mx-auto compressor-wrap relative flex flex-col"
+    class="rounded-2xl p-4 md:p-6 w-full min-w-0 max-w-none h-[400px] mx-auto compressor-wrap relative flex flex-col"
     :style="{
       '--channel-color': color,
       '--channel-color-glow': color,
@@ -172,7 +172,10 @@ function onRatioSelect(index) {
       </button>
     </div>
     <div class="mb-6 flex items-center justify-center gap-2">
-      <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Ratio<span v-if="ccRatio != null"> · CC {{ ccRatio }}</span></span>
+      <div class="flex flex-col items-center">
+        <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Ratio</span>
+        <span v-if="ccRatio != null" class="text-[9px] font-semibold uppercase tracking-wide comp-label opacity-70">CC {{ ccRatio }}</span>
+      </div>
       <div class="flex items-center justify-center gap-2">
         <label
           v-for="(lbl, i) in ratioSteps"
@@ -194,37 +197,49 @@ function onRatioSelect(index) {
     </div>
     <div class="flex-1 flex items-center justify-center">
       <div class="grid grid-cols-2 gap-6 w-full place-items-center">
-      <div class="flex flex-col items-center gap-3">
-        <MixerKnob
-          :value="values.threshold"
-          :size="knobSize"
-          :hud-label="'Threshold'"
-          :hud-value="thresholdDb + ' dB'"
-          :hud-enabled="false"
-          @input="v => onVal('threshold', v)"
-        />
-        <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Threshold · {{ thresholdDb }} dB<span v-if="ccThreshold != null"> · CC {{ ccThreshold }}</span></span>
+      <div class="flex flex-col items-center">
+        <div class="flex flex-col items-center gap-3">
+          <MixerKnob
+            :value="values.threshold"
+            :size="knobSize"
+            :hud-label="'Threshold'"
+            :hud-value="thresholdDb + ' dB'"
+            :hud-enabled="false"
+            @input="v => onVal('threshold', v)"
+          />
+          <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Threshold · {{ thresholdDb }} dB</span>
+        </div>
+        <span v-if="ccThreshold != null" class="mt-0.5 text-[9px] font-semibold uppercase tracking-wide comp-label opacity-70">CC {{ ccThreshold }}</span>
       </div>
-      <div class="flex flex-col items-center gap-3">
-        <MixerKnob
-          :value="values.makeup"
-          :size="knobSize"
-          :hud-label="'Makeup Gain'"
-          :hud-value="makeupDb + ' dB'"
-          :highlight-from-center="true"
-          :reset-value="64"
-          :hud-enabled="false"
-          @input="v => onVal('makeup', v)"
-        />
-        <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Makeup Gain<span v-if="ccMakeup != null"> · CC {{ ccMakeup }}</span></span>
+      <div class="flex flex-col items-center">
+        <div class="flex flex-col items-center gap-3">
+          <MixerKnob
+            :value="values.makeup"
+            :size="knobSize"
+            :hud-label="'Makeup Gain'"
+            :hud-value="makeupDb + ' dB'"
+            :highlight-from-center="true"
+            :reset-value="64"
+            :hud-enabled="false"
+            @input="v => onVal('makeup', v)"
+          />
+          <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Makeup Gain</span>
+        </div>
+        <span v-if="ccMakeup != null" class="mt-0.5 text-[9px] font-semibold uppercase tracking-wide comp-label opacity-70">CC {{ ccMakeup }}</span>
       </div>
-      <div class="flex flex-col items-center gap-3">
-        <MixerKnob :value="values.attack" :size="knobSize" :hud-label="'Attack'" :hud-value="attackMsStr" :invert-ticks="true" :hud-enabled="false" @input="v => onVal('attack', v)" />
-        <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Attack<span v-if="ccAttack != null"> · CC {{ ccAttack }}</span></span>
+      <div class="flex flex-col items-center">
+        <div class="flex flex-col items-center gap-3">
+          <MixerKnob :value="values.attack" :size="knobSize" :hud-label="'Attack'" :hud-value="attackMsStr" :invert-ticks="true" :hud-enabled="false" @input="v => onVal('attack', v)" />
+          <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Attack</span>
+        </div>
+        <span v-if="ccAttack != null" class="mt-0.5 text-[9px] font-semibold uppercase tracking-wide comp-label opacity-70">CC {{ ccAttack }}</span>
       </div>
-      <div class="flex flex-col items-center gap-3">
-        <MixerKnob :value="values.release" :size="knobSize" :hud-label="'Release'" :hud-value="releaseMsStr" :invert-ticks="true" :hud-enabled="false" @input="v => onVal('release', v)" />
-        <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Release<span v-if="ccRelease != null"> · CC {{ ccRelease }}</span></span>
+      <div class="flex flex-col items-center">
+        <div class="flex flex-col items-center gap-3">
+          <MixerKnob :value="values.release" :size="knobSize" :hud-label="'Release'" :hud-value="releaseMsStr" :invert-ticks="true" :hud-enabled="false" @input="v => onVal('release', v)" />
+          <span class="text-[10px] font-medium uppercase tracking-wide comp-label">Release</span>
+        </div>
+        <span v-if="ccRelease != null" class="mt-0.5 text-[9px] font-semibold uppercase tracking-wide comp-label opacity-70">CC {{ ccRelease }}</span>
       </div>
       </div>
     </div>
